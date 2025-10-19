@@ -167,17 +167,17 @@ def get_comprehensive_data(ticker_symbol, target_date='2024-12-31'):
             'Market_Cap': market_cap,
             'PE_Ratio': pe_ratio,
             'PB_Ratio': pb_ratio,
-            'Annual_Return_%': annual_return,
+            'Annual_Return_Pct': annual_return,
             
             # profitibility (%)
             'Revenue': revenue,
             'Net_Income': net_income,
-            'Operating_Margin_%': operating_margin,
-            'Gross_Margin_%': gross_margin,
-            'ROE_%': roe,
-            'ROA_%': roa,
-            'Profit_Margin_%': profit_margin,
-            'EBITDA_Margin_%': ebitda_margin,
+            'Operating_Margin_Pct': operating_margin,
+            'Gross_Margin_Pct': gross_margin,
+            'ROE_Pct': roe,
+            'ROA_Pct': roa,
+            'Profit_Margin_Pct': profit_margin,
+            'EBITDA_Margin_Pct': ebitda_margin,
             'EPS': eps,
             
             # risk/stability
@@ -187,7 +187,7 @@ def get_comprehensive_data(ticker_symbol, target_date='2024-12-31'):
             'Operating_Cash_Flow': cash_flow,
             
             # Growth (%)
-            'Revenue_Growth_%': revenue_growth,
+            'Revenue_Growth_Pct': revenue_growth,
             
             # Status
             'Status': 'Success'
@@ -214,22 +214,22 @@ def get_comprehensive_data(ticker_symbol, target_date='2024-12-31'):
             'Current_Price': None,
             'Revenue': None,
             'Net_Income': None,
-            'Operating_Margin_%': None,
-            'Gross_Margin_%': None,
-            'ROE_%': None,
-            'ROA_%': None,
-            'Profit_Margin_%': None,
-            'EBITDA_Margin_%': None,
+            'Operating_Margin_Pct': None,
+            'Gross_Margin_Pct': None,
+            'ROE_Pct': None,
+            'ROA_Pct': None,
+            'Profit_Margin_Pct': None,
+            'EBITDA_Margin_Pct': None,
             'EPS': None,
             'Market_Cap': None,
             'PE_Ratio': None,
             'PB_Ratio': None,
-            'Annual_Return_%': None,
+            'Annual_Return_Pct': None,
             'Beta': None,
             'Debt_to_Equity': None,
             'Current_Ratio': None,
             'Operating_Cash_Flow': None,
-            'Revenue_Growth_%': None,
+            'Revenue_Growth_Pct': None,
             'Status': f'Error: {str(e)}'
         }
 
@@ -285,7 +285,7 @@ def main():
             print(f"    Total ESG Score: {result['Total_ESG_Score']} (E:{result['Environmental_Score']}, S:{result['Social_Score']}, G:{result['Governance_Score']})")
             print(f"    Stock Price: {result['Stock_Price']} {result['Currency']}")
             print(f"    Market Cap: {result['Market_Cap']:,.0f}" if result['Market_Cap'] else "    Market Cap: N/A")
-            print(f"    ROE: {result['ROE_%']}% | Beta: {result['Beta']}")
+            print(f"    ROE: {result['ROE_Pct']}% | Beta: {result['Beta']}")
         else:
             print(f"  ✗ {result['Status']}")
         
@@ -312,7 +312,7 @@ def main():
     print("\nData completeness check:")
     esg_complete = len(df[df['Total_ESG_Score'].notna()])
     price_complete = len(df[df['Stock_Price'].notna()])
-    roe_complete = len(df[df['ROE_%'].notna()])
+    roe_complete = len(df[df['ROE_Pct'].notna()])
     beta_complete = len(df[df['Beta'].notna()])
     
     print(f"  ESG data complete: {esg_complete}/{len(df)} ({esg_complete/len(df)*100:.1f}%)")
@@ -326,7 +326,7 @@ def main():
     # preview data
     print("\nData preview (first 5 rows):")
     preview_cols = ['Ticker', 'Company_Name', 'Total_ESG_Score', 'Stock_Price', 
-                    'Market_Cap', 'ROE_%', 'Beta', 'Status']
+                    'Market_Cap', 'ROE_Pct', 'Beta', 'Status']
     print(df[preview_cols].head().to_string(index=False))
 
 if __name__ == "__main__":
