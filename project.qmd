@@ -14,7 +14,7 @@ format:
     geometry: margin=2.5cm
     link-citations: true
     number-sections: true
-    toc: true
+    toc: false
 
 execute:
   echo: false
@@ -26,7 +26,6 @@ execute:
   fig-height: 2       
   out-width: "60%"
 ---
-\newpage
 
 ```{python}
 #| label: libraires
@@ -765,9 +764,6 @@ print("Dropped columns:", cols_to_drop)
 #| label: to_csv
 esg_clean.to_csv("Data/cleaned_combined_data.csv", index=False)
 ```
-
-## Applied Analysis Methods 
-TBD
 
 # Visualization - delete completely???
 
