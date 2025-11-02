@@ -1,5 +1,5 @@
 ---
-title: "Corporate ESG Performance and Financial Market Performance - Feasibility Study"
+title: "Corporate ESG Performance and Financial Market Performance"
 author: "Xinmeng Song, Bianca Bernasconi & Marisa Timm (group 107)"
 date: "07 November 2025"
 
@@ -55,85 +55,29 @@ Our research questions are therefore:
 # Methods
 ## Data Acquisition
 
-### Data Source
-
 We collect data from two main company groups:
 
-- The first consists of all Swiss listed firms included in the Swiss Performance Index (SPI) — approximately 230 companies across various sectors. 
-- The second serves as a global benchmark, represented by the S&P 500 Index, which includes 500 leading U.S.-listed companies.
+- Swiss companies listed in the Swiss Performance Index (SPI), which includes 201 companies across various sectors. 
+- U.S. companies from the S&P 500 Index as a global benchmark, which includes 503 leading listed companies.
 
-For both datasets, financial and ESG data were retrieved via the Yahoo Finance API by company ticker. 
+For both datasets, financial and ESG data were retrieved via the Yahoo Finance API by company ticker. Since the API does not provide official documentation, we found two reliable public technical references ([Ranaroussi’s yfinance Documentation](https://ranaroussi.github.io/yfinance/reference/index.html) and the [AlgoTrading101 API Guide](https://algotrading101.com/learn/yahoo-finance-api-guide/) that we can consult to ensure data accuracy and consistency. We developed a Python script to extract data via the Yahoo Finance API. By modifying the input parameter (`swiss_companies.txt` and `S&P_companies.txt`), we generated separate datasets for Swiss and S&P companies. The complete implementation can be found in the Data folder as data_acquisition.py.
 
-Yahoo Finance does not provide official API documentation, we found two reliable public technical references ([Ranaroussi’s yfinance Documentation](https://ranaroussi.github.io/yfinance/reference/index.html) and the [AlgoTrading101 API Guide](https://algotrading101.com/learn/yahoo-finance-api-guide/) that we can consult to ensure data accuracy and consistency.
+Company tickers were first collected from Wikipedia ([SPI](https://en.wikipedia.org/wiki/Swiss_Performance_Index), [S&P 500](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies)), and for the SPI we validated the list against a real-time source from [Investing.com](https://www.investing.com/indices/swiss-performance-components) (as of 2025-10-17). Mismatches were resolved via Excel’s VLOOKUP and manual checks. Finalized tickers were stored in company_list.xlsx.
 
-#### Company List Compilation
+Variables collected cover company information, financial indicators, and ESG scores:
 
-We first collected the company tickers from publicly available Wikipedia pages: [Swiss Performance Index (SPI)](https://en.wikipedia.org/wiki/Swiss_Performance_Index) and [S&P 500 Index](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies). These sources provide an accessible and structured overview of companies and their corresponding tickers.
-
-However, both indices are dynamic — the composition of listed companies changes over time due to mergers, delistings, and index rebalancing. The SPI table on Wikipedia references data as of September 18, 2020 and is therefore not up to date. To ensure that our analysis reflects the most recent constituents, we cross-checked the Wikipedia lists against a real-time source from [Investing.com](https://www.investing.com/indices/swiss-performance-components) on the day of data acquisition (October 17, 2025), which provides the current SPI components but without ticker symbols.
-
-Then, we used Excel’s VLOOKUP function to systematically identify and resolve mismatches between the Wikipedia and real-time lists. Missing or renamed tickers were manually verified and corrected. The resulting files contain finalized company tickers for both the SPI and S&P 500 datasets, which were then used for data extraction via the Yahoo Finance API.
-
-The final lists of both company groups and the detailed cross-checking process are documented in the Excel file “company list.xlsx”, located in the folder “Company List”.
-
-#### Variables Collected
-
-We compile variables across several dimensions, summarized below:
-1. Company Information:
-
-- Company name, ticker, currency, industry, sector, and country.
-
-2. Financial and Market Data:
-
-To capture firm performance from multiple perspectives, we categorize financial variables as follows:
-
-- Stock Price: </br>
-Collected for two reference dates: 2024-12-31 (to align with the fiscal-year-end snapshot) and 2025-10-17 (the date of data acquisition).
-- Profitability Metrics: </br>
-Revenue, Net Income, Operating Margin, Gross Margin, ROE, ROA, Profit Margin, EBITDA Margin, and EPS. These variables reflect operational efficiency and profitability and allow testing whether ESG leaders exhibit superior or more stable performance.
-- Valuation Metrics: </br>
-Market Capitalization, P/E Ratio, P/B Ratio, and Annual Return — used to assess whether the market values ESG leaders at a premium and whether they show lower risk.
-- Risk and Stability Metrics: </br>
-Beta, Debt-to-Equity Ratio, Current Ratio, and (Operating / Free) Cash Flow. These indicators provide insight into a firm’s leverage, liquidity, and resilience.
-- Growth Metrics: </br>
-Revenue Growth and other expansion indicators, used to test whether ESG-oriented firms achieve higher or more sustainable growth.
+1. Company Information: name, ticker, country, sector, industry, currency.
+2. Financial and Market data, including **Stock Price**, **Profitability Metrics** (Revenue, Net Income, Operating Margin, Gross Margin, ROE, ROA, Profit Margin, EBITDA Margin, and EPS), **Valuation Metrics** (Market Capitalization, P/E Ratio, P/B Ratio, and Annual Return), **Risk and Stability Metrics** (Beta, Debt-to-Equity Ratio, Current Ratio, and (Operating Cash Flow), **Revenue Growth**.
+3. ESG Scores: Total ESG Score, Environmental / Social / Governance sub-scores, Highest Controversy, and ESG Performance Category.
 
 All financial data correspond to a **2024-12-31** snapshot, ensuring alignment with the same reporting period as the ESG scores.
 
-3. ESG Scores:
-
-The ESG dataset includes both aggregate and dimension-level measures:
-
-- Total ESG Risk Score, Environmental Risk Score, Social Risk Score, and Governance Risk Score.
-- Highest Controversy Level (0–5 scale), capturing the severity of historical ESG-related incidents.
-- ESG Performance Category — including UNDER_PERF, AVG_PERF, and OUT_PERF — indicating whether the company underperforms, performs similarly to, or outperforms peers in ESG practices.
-
-### Data Extraction via API
-
-We developed the following Python script to extract data via the Yahoo Finance API. By modifying the input parameter (`swiss_companies.txt` and `S&P_companies.txt`), we generated separate datasets for Swiss and S&P companies.
-
-The complete implementation can be found in the Data folder as data_acquisition.py, and the downloaded datasets are stored in the Data folder as esg_financial_analysis_spi.csv and esg_financial_analysis_sp500.csv.
-
 ## Data Cleansing
-
-Following the data acquisition process, the raw datasets were imported for cleansing and preprocessing. This step involved loading the data and necessary packages, checking for missing or inconsistent values, identifying outliers, and ensuring all financial metrics and ESG scores were correctly formatted for further analysis.
-
-
-
-### Load Data
-
-Firstly, we load the two datasets to begin the data cleansing process.
-
 ```{python}
 #| label: load-data
 spi = pd.read_csv(Path("Data/esg_financial_analysis_spi.csv"))
 sp500 = pd.read_csv(Path("Data/esg_financial_analysis_sp500.csv"))
 ```
-
-Then we check the structure of the SPI dataset. It contains 201 observations with 34 variables.
-On the first glance, we see that we don't have all variables of all observations. We therefore need to look into that closer.
-
-(i.e. 142 Total ESG Scores out of 201 observations)
 
 ```{python}
 #| label: SPI-overview
@@ -141,21 +85,11 @@ print(spi.shape)
 spi.describe()
 ```
 
-We do the same for the S&P 500 dataset. It contains 503 observations with 34 variables.
-
-Here we see as well that we have some NAs for certain variables.
-
 ```{python}
 #| label: SPI500-overview
 print(sp500.shape)
 sp500.describe()
 ```
-
-### Check Missing Data
-
-*Remark MT: cant we remove this first step because we handle it in more detail later?* </br>
-We now look into more detail of missing data: We look at the count and the percentage of the amount of data missing. </br>
-Especially for the ESG, we see some missing data which we need to look into closer.
 
 ```{python}
 #| label: missing-data-function
@@ -178,8 +112,6 @@ missing_summary(spi, "SPI")
 #| label: missing-data_SP500
 missing_summary(sp500, "SP500")
 ```
-
-#### Missing ESG data
 
 ```{python}
 #| label: missing-esg-data
@@ -213,11 +145,6 @@ spi_no_esg = check_esg_missing(spi, "SPI")
 sp500_no_esg = check_esg_missing(sp500, "S&P 500")
 ```
 
-Missing ESG data in the S&P 500 dataset is negligible, but in SPI dataset, only 71/201 companies have full ESG data, and 142 have Total ESG Score as well as ESG_Performance indicator. Removing the 130 companies without detailed scores would be too much, instead, we could remove 59/201 SPI companies without the Total ESG Score, and consider dividing the remaining companies into two subgroups for further analysis: 
-
-- 142 companies with Total ESG Score 
-- and 71 with full ESG data
-
 ```{python}
 #| label: spi-esg-drop-na
 spi_esg = spi.dropna(subset=['Total_ESG_Score'])
@@ -232,9 +159,11 @@ print(sp500_esg.shape)
 print(sp500_esg['Total_ESG_Score'].isnull().sum())
 ```
 
-#### Country Issues
+First, by checking the missing ESG data, we found that only 71/201 SPI companies had full ESG data and 142/201 had Total ESG Scores. To maintain sample size, we only removed firms without Total ESG Score. Then, we examined the country distribution to ensure dataset consistency. Since 5/201 SPI firms were non-Swiss, we removed them to maintain comparability. In the S&P 500 dataset, 96% were US-based, so non-US firms were also removed. We also checked and guaranteed that no overlap existed between SPI and S&P 500 companies. Besides, 1 duplicate (SCHN.SW vs. SCHP.SW) was resolved by keeping the registered share ticker, and a missing company name (Galderma) was manually filled in this part.
 
-Next, we look at the countries of the companies to identify whether some firms listed in the SPI dataset are actually non-Swiss and to understand the distribution, in order to decide whether to exclude them.
+A few financial variables (e.g., ROE%, Beta, Revenue) contained sporadic missing values. To ensure consistency, we dropped variables with extensive missing data or redundancy, please check the data prep code for more details.
+
+After cleaning, we retained 134 Swiss companies (SPI) and 280 U.S. companies (S&P 500) for subsequent analysis.
 
 ```{python}
 #| label: non_swiss-spi_esg-count
@@ -242,14 +171,10 @@ non_swiss = spi_esg[spi_esg["Country"] != "Switzerland"]
 print(non_swiss[['Ticker', 'Company_Name', 'Country', 'Total_ESG_Score']].to_string())
 ```
 
-Considering that 5 out of 201 companies in the SPI dataset are non-Swiss, we decided to remove these non-Swiss firms to ensure better consistency and comparability in our analysis.
-
 ```{python}
 #| label: spi-esg-remove-non-swiss
 spi_esg = spi_esg[spi_esg["Country"] == "Switzerland"]
 ```
-
-Next, we check if companies in the SPI are also in the S&P 500, as a few multinational corporations might appear in both the SPI and S&P 500 datasets.
 
 ```{python}
 #| label: check-sp500-swiss
@@ -264,10 +189,6 @@ matching_spi = spi_esg[spi_esg['Company_Name'].isin(check_duplicates)]
 
 print(matching_spi[['Ticker', 'Company_Name', 'Country', 'Total_ESG_Score']].to_string())
 ```
-
-So: No overlapping companies
-
-We want to see the distribution of countries in the S&P dataset. Because approx 96% of the companies are based in the US, we decide to focus on Swiss vs. US companies.
 
 ```{python}
 #| label: country_counts-sp500
@@ -290,14 +211,10 @@ sp500_nonUS = sp500_esg[sp500_esg["Country"] != "United States"]
 print(sp500_nonUS[['Ticker', 'Company_Name', 'Country', 'Total_ESG_Score']].to_string())
 ```
 
-Again, we remove those non-US companies.
-
 ```{python}
 #| label: sp500-US-only
 sp500_esg = sp500_esg[sp500_esg["Country"] == "United States"]
 ```
-
-#### Fix Company Name
 
 ```{python}
 #| label: spi-company_name-na
@@ -314,8 +231,6 @@ spi_esg[spi_esg["Company_Name"].isna()]
 #| label: sp500-company_name-na
 sp500_esg[sp500_esg["Company_Name"].isna()]
 ```
-
-#### Check Duplicates by Company Name
 
 ```{python}
 #| label: spi_duplicates
@@ -343,8 +258,6 @@ print(sp500_duplicates[['Ticker', 'Company_Name', 'Total_ESG_Score','Environment
 sp500_esg.shape
 ```
 
-####  Other Missing Data
-
 ```{python}
 #| label: summary-spi_esg-spi
 missing_summary(spi_esg, "SPI")
@@ -361,21 +274,10 @@ spi_missing_minor_data = spi_esg[spi_esg[missing_minor_columns].isnull().any(axi
 print(spi_missing_minor_data[['Company_Name'] + missing_minor_columns].to_string(index=False))
 ```
 
-Suggested Strategies for Handling Missing Data:
-
-Given that only 136 companies have a Total ESG Score, better avoid removing further companies due to other missing values.
-
-1.	Missing values in Highest_Controversy, Stock_Price, Revenue, ROA_% (1 case each), ROE_% (3 cases), and Beta (2 cases) are negligible and unlikely to bias results.
-2.	Exclude `PE_Ratio` from the analysis, which is similar to `Market_Cap`.
-3.	Exclude `EBITDA_Margin_%`, which it is similar to `Profit_Margin_%`.
-4.	Beta, Debt_to_Equity, Current_Ratio, Operating_Cash_Flow are all risk and stability indicators, we can use only `Beta`, which has less missing data and better captures systematic market risk.
-
 ```{python}
 #| label: summary-sp500_esg-sp50
 missing_summary(sp500_esg, "SP500")
 ```
-
-TODO: depending on which metrics and industries we choose to further analyze, we may need to further remove some data from S&P 500 due to unbalanced size of two datasets and missing data. However, S&P 500 dataset is mainly for support and comparison, so here we don't go deeper with this dataset and adjust this dataset according to SPI dataset.
 
 ```{python}
 #| label: remove-columns-with-large-missing-data
@@ -388,9 +290,7 @@ spi_esg = spi_esg.drop(columns=missing_large_columns)
 sp500_esg = sp500_esg.drop(columns=missing_large_columns)
 ```
 
-Summary: After cleaning missing data, we retained 134 Swiss companies in the SPI group and 280 US companies in the S&P 500 group.
-
-### Check and Fix Data Types
+For data type and range checks, numeric, categorical, and date columns were standardized. Value ranges were validated (e.g., ESG scores 0–100, controversy level 0–5). Given some companies can have extreme margins and returns, out-of-range values were treated as warnings rather than removed.
 
 ```{python}
 #| label: spi_esg-dtypes
@@ -452,10 +352,6 @@ def fix_datatypes(df, name):
 spi_esg = fix_datatypes(spi_esg, "SPI")
 sp500_esg = fix_datatypes(sp500_esg, "S&P 500")
 ```
-
-### Check Value Ranges and Remove Errors
-
-#### Numeric Data
 
 ```{python}
 #| label: def-check_value_ranges-df-name
@@ -536,10 +432,6 @@ print(spi_esg_errors)
 print(sp500_esg_errors)
 ```
 
-Margin and Return data are just warning (or might be considered outliers) but here should not be removed since some companies can have extreme margins and returns
-
-#### Categorical Data
-
 ```{python}
 #| label: categorical_cols-currency-sect
 categorical_cols = ['Currency', 'Sector', 'Industry', 'Country', 'ESG_Performance', 'Status']
@@ -555,8 +447,6 @@ for col in categorical_cols:
     print(sp500_esg[col].value_counts())
 ```
 
-#### Integer Data
-
 ```{python}
 #| label: cell-80-print-spi_esg-highest_controversy
 print(spi_esg['Highest_Controversy'].value_counts())
@@ -567,9 +457,7 @@ print(spi_esg['Highest_Controversy'].value_counts())
 print(sp500_esg['Highest_Controversy'].value_counts())
 ```
 
-### Identify and Treat Outliers
-
-#### Identify using IQR Method
+Outliers were identified using the IQR method. Given the limited ESG sample size, we retained extreme values at this stage, as they may represent valid observations. Outlier treatment will be revisited during the analysis phase based on metric distributions.
 
 ```{python}
 #| label: def-identify_outliers
@@ -623,8 +511,6 @@ spi_outliers = identify_outliers(spi_esg, "SPI")
 sp500_outliers = identify_outliers(sp500_esg, "S&P 500")
 ```
 
-#### isualize using Boxplot
-
 ```{python}
 #| label: plot_outliers-df-name
 
@@ -649,36 +535,15 @@ def plot_outliers(df, name):
 plot_outliers(spi_esg, "SPI")
 ```
 
-Boxplots help us visually identify where extreme values occur for specific metrics. Given that our effective ESG sample size is limited, we do not handle extreme values during the data preparation stage, as such extreme values may be legitimate.
+Finally, we enriched the dataset with additional attributes and prepares it for analysis. A Company_Type column was added to distinguish between SPI and S&P 500 firms in the later merged dataset. Companies were classified into five ESG Risk Categories (Negligible, Low, Medium, High, Severe) based on [ESG Risk Ratings Methodology](https://www.sustainalytics.com/docs/knowledgehublibraries/default-document-library/sustainalytics_-esg-risk-ratings_-version-3-1_-methodology-abstract_-june-2024.pdf), where lower scores indicate lower risk.
 
-TODO: Addressing outliers (keep or remove them) during the analysis and comparison of specific metrics, based on the observed distributions
-
-### Enrich Dataset with Additional Information
-
-#### Add Company_Type column for identification before merging
+After the SPI and S&P 500 datasets were merged, redundant columns with identical values were removed, and the cleaned combined dataset was saved as “Data/cleaned_combined_data.csv.”
 
 ```{python}
 #| label: company_type
 spi_esg['Company_Type'] = "SPI"
 sp500_esg['Company_Type'] = "S&P 500"
 ```
-
-#### ESG Risk Classification
-
-Yahoo Finance utilizes Sustainalytics’ ESG Risk Ratings, which categorize companies into five levels: Negligible, Low, Medium, High, and Severe. These ratings are visually represented using ESG Globe icons, where **Low numbers indicate a low risk, whereas higher numbers indicate a higher risk**. This classification is widely used in ESG data analysis and investment decision-making.
-
-**ESG Risk Categories at Overall Level** 
-(according to [ESG Risk Ratings Methodology](https://www.sustainalytics.com/docs/knowledgehublibraries/default-document-library/sustainalytics_-esg-risk-ratings_-version-3-1_-methodology-abstract_-june-2024.pdf))
-
-A company’s ESG Risk Ratings score on Overall Level is assigned to one of five ESG risk categories in the ESG Risk Ratings:
-
-- Negligible risk (overall unmanaged risk score between 0 and 9.99 points): ESG factors are considered to drive negligible risk to enterprise value.
-- Low risk (overall unmanaged risk score between 10 and 19.99 points): ESG factors are considered to drive low risk to enterprise value.
-- Medium risk (overall unmanaged risk score between 20 and 29.99 points): ESG factors are considered to drive medium risk to enterprise value.
-- High risk (overall unmanaged risk score between 30 and 39.99 points): ESG factors are considered to drive high risk to enterprise value.
-- Severe risk (overall unmanaged risk score 40 points and above): ESG factors are considered to drive severe risk to enterprise value.
-
-Note: Because ESG risks materialize at an unknown time in the future and depend on a variety of unpredictable conditions, no predictions on financial or share price impacts, or on the time horizon of such impacts, are intended or implied by these risk categories.
 
 ```{python}
 #| label: categorize_esg_risk-score
@@ -705,8 +570,6 @@ spi_esg['ESG_Risk_Category'] = spi_esg['ESG_Risk_Category'].astype('category')
 sp500_esg['ESG_Risk_Category'] = sp500_esg['Total_ESG_Score'].apply(categorize_esg_risk)
 sp500_esg['ESG_Risk_Category'] = sp500_esg['ESG_Risk_Category'].astype('category')
 ```
-
-#### Reorder columns for better readability
 
 ```{python}
 #| label: cols-list
@@ -740,10 +603,6 @@ cols.insert(idx, 'ESG_Risk_Category')
 sp500_esg = sp500_esg[cols]
 ```
 
-### Format Dataset for Analysis
-
-#### Remove columns with identical value
-
 ```{python}
 #| label: clean
 esg_clean = pd.concat([spi_esg, sp500_esg], ignore_index=True)
@@ -758,124 +617,9 @@ esg_clean = esg_clean.drop(columns=cols_to_drop)
 print("Dropped columns:", cols_to_drop)
 ```
 
-#### Save Cleaned Datasets
-
 ```{python}
 #| label: to_csv
 esg_clean.to_csv("Data/cleaned_combined_data.csv", index=False)
-```
-
-# Visualization - delete completely???
-
-## Light Exploratory Data Analysis
-- Industry Distribution
-- ESG Distribution
-
-### Industry Distribution
-
-```{python}
-#| label: top-10-industries
-top_industries = esg_clean['Industry'].value_counts().head(10).index
-top_ind = esg_clean[esg_clean['Industry'].isin(top_industries)]
-
-industry_type_counts = pd.crosstab(top_ind['Industry'], top_ind['Company_Type'])
-industry_type_counts = industry_type_counts[['SPI', 'S&P 500']]
-industry_type_counts['Total'] = industry_type_counts.sum(axis=1)
-industry_type_counts = industry_type_counts.sort_values(by='Total', ascending=True)
-industry_type_counts = industry_type_counts.drop(columns='Total')
-
-# figure
-industry_type_counts.plot(kind='barh', stacked=True, 
-                         color=['#2E86AB', '#A23B72'])
-
-plt.xlabel('Number of Companies', fontsize=11)
-plt.ylabel('Industry', fontsize=11)
-plt.title('Top 10 Industries (SPI + S&P 500)', fontsize=12, fontweight='bold')
-plt.legend(title='Company Type', fontsize=9)
-plt.grid(axis='x', alpha=0.3)
-
-plt.show()
-```
-
-**Top 10 Industries according to SPI counts**
-
-```{python}
-#| label: spi_companies
-spi_companies = esg_clean[esg_clean['Company_Type'] == 'SPI']
-top_spi_industries = spi_companies['Industry'].value_counts().head(10).index
-
-top_spi_ind = esg_clean[esg_clean['Industry'].isin(top_spi_industries)]
-
-industry_spi_counts = pd.crosstab(top_spi_ind['Industry'], top_spi_ind['Company_Type'])
-industry_spi_counts = industry_spi_counts[['SPI', 'S&P 500']]
-industry_spi_counts = industry_spi_counts.sort_values(by='SPI', ascending=True)
-
-industry_spi_counts.plot(kind='barh', stacked=True, 
-                          color=['#2E86AB', '#A23B72'])
-
-plt.xlabel('Number of Companies', fontsize=11)
-plt.ylabel('Industry', fontsize=11)
-plt.title('Top 10 Industries (SPI)', fontsize=12, fontweight='bold')
-plt.legend(title='Company Type', fontsize=9)
-plt.grid(axis='x', alpha=0.3)
-plt.tight_layout()
-
-plt.show()
-```
-
-### ESG Distribution
-
-```{python}
-#| label: cell-116-plt-figure-figsize-6-4
-plt.figure(figsize=(6,4))
-plt.hist(esg_clean[esg_clean['Company_Type']=='SPI']['Total_ESG_Score'].dropna(), bins=25, alpha=0.6, label='SPI')
-plt.hist(esg_clean[esg_clean['Company_Type']=='S&P 500']['Total_ESG_Score'].dropna(), bins=25, alpha=0.6, label='S&P 500')
-plt.xlabel('Total ESG Score')
-plt.ylabel('Frequency')
-plt.title('Total ESG Score Distribution')
-plt.legend()
-plt.grid(alpha=0.3)
-plt.show()
-```
-
-```{python}
-#| label: cell-117-esg_cols-total_esg_score-envir
-
-esg_cols = ['Total_ESG_Score', 'Environmental_Score', 'Social_Score', 'Governance_Score']
-esg_labels = ['Total ESG', 'Environmental (E)', 'Social (S)', 'Governance (G)']
-
-fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-axes = axes.flatten()
-
-for i, col in enumerate(esg_cols):
-    sns.boxplot(data=esg_clean, x='Company_Type', y=col, ax=axes[i], palette=['#2E86AB', '#A23B72'])
-    axes[i].set_title(f'{esg_labels[i]} Comparison', fontsize=12, fontweight='bold')
-    axes[i].grid(axis='y', alpha=0.3)
-    axes[i].set_xlabel('')
-    axes[i].set_ylabel('Score')
-
-plt.tight_layout()
-plt.show()
-```
-
-```{python}
-#| label: cell-118-plt-figure-figsize-7-4
-
-plt.figure(figsize=(7,4))
-pd.crosstab(esg_clean['ESG_Risk_Category'], esg_clean['Company_Type']).plot(kind='bar', color=['#2E86AB', '#A23B72'])
-plt.xlabel('ESG Risk Category')
-plt.ylabel('Number of Companies')
-plt.title('ESG Risk Category Distribution')
-plt.grid(axis='y', alpha=0.3)
-plt.tight_layout()
-plt.show()
-```
-
-```{python}
-#| label: cell-119-esg_means-esg_clean-groupby-co
-
-esg_means = esg_clean.groupby('Company_Type')[esg_cols].mean().round(2)
-print(esg_means)
 ```
 
 # Analysis & discussion of results
