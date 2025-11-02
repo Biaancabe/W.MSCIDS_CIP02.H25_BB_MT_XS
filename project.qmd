@@ -1,7 +1,7 @@
 ---
 title: "Corporate ESG Performance and Financial Market Performance - Feasibility Study"
 author: "Xinmeng Song, Bianca Bernasconi & Marisa Timm (group 107)"
-date: "05 October 2025"
+date: "07 November 2025"
 
 lang: en-GB
 bibliography: references.bib
@@ -17,12 +17,16 @@ format:
     toc: true
 
 execute:
-  include: false
   echo: false
+  input: false
+  output: false
   warning: false
   message: false
-
+  fig-width: 4        
+  fig-height: 2       
+  out-width: "60%"
 ---
+\newpage
 
 ```{python}
 #| label: libraires
@@ -31,6 +35,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
+import statsmodels.formula.api as smf
+import statsmodels.api as sm
+from pathlib import Path
+from sklearn.preprocessing import StandardScaler
 
 ```
 
@@ -39,18 +47,94 @@ from datetime import datetime
 ESG performance has become an important factor in corporate strategy and financial markets. Meta-analyses show that a majority of studies find a positive relationship between ESG scores. However, there is also a non-negligible share of research reports that report neutral or even negative effects. [@Friede2015; @WhelanAtzClark2021] Our project focuses on Swiss companies to examine whether ESG scores are positively linked to financial performance.
 
 Our research questions are therefore:
-1. What is the relationship between ESG scores and financial performance for Swiss listed companies?
-2. What is the effect of the industry type on this relationship, focusing on the top 5 industries in Switzerland.
-3. If there is a clear dependency of ESG on financial performance, how do the individual effects of Environmental (E), Social (S), and Governance (G) factors compare in explaining this relationship?
-4. How does the relationship between financial performance and research scores behave of Swiss companies compared to peers in the US?
 
-# Data Preparation
+1. What is the relationship between ESG scores and financial performance for Swiss listed companies?
+2. What is the effect of the industry type on this relationship, focusing on the top 5 industries in Switzerland?
+3. If there is a clear dependency of ESG on financial performance, how do the individual effects of Environmental (E), Social (S), and Governance (G) factors compare in explaining this relationship?
+4. How does the relationship between financial performance and ESG scores behave of Swiss companies compared to peers worldwide?
+
+# Methods
+## Data Acquisition
+
+### Data Source
+
+We collect data from two main company groups:
+
+- The first consists of all Swiss listed firms included in the Swiss Performance Index (SPI) — approximately 230 companies across various sectors. 
+- The second serves as a global benchmark, represented by the S&P 500 Index, which includes 500 leading U.S.-listed companies.
+
+For both datasets, financial and ESG data were retrieved via the Yahoo Finance API by company ticker. 
+
+Yahoo Finance does not provide official API documentation, we found two reliable public technical references ([Ranaroussi’s yfinance Documentation](https://ranaroussi.github.io/yfinance/reference/index.html) and the [AlgoTrading101 API Guide](https://algotrading101.com/learn/yahoo-finance-api-guide/) that we can consult to ensure data accuracy and consistency.
+
+#### Company List Compilation
+
+We first collected the company tickers from publicly available Wikipedia pages: [Swiss Performance Index (SPI)](https://en.wikipedia.org/wiki/Swiss_Performance_Index) and [S&P 500 Index](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies). These sources provide an accessible and structured overview of companies and their corresponding tickers.
+
+However, both indices are dynamic — the composition of listed companies changes over time due to mergers, delistings, and index rebalancing. The SPI table on Wikipedia references data as of September 18, 2020 and is therefore not up to date. To ensure that our analysis reflects the most recent constituents, we cross-checked the Wikipedia lists against a real-time source from [Investing.com](https://www.investing.com/indices/swiss-performance-components) on the day of data acquisition (October 17, 2025), which provides the current SPI components but without ticker symbols.
+
+Then, we used Excel’s VLOOKUP function to systematically identify and resolve mismatches between the Wikipedia and real-time lists. Missing or renamed tickers were manually verified and corrected. The resulting files contain finalized company tickers for both the SPI and S&P 500 datasets, which were then used for data extraction via the Yahoo Finance API.
+
+The final lists of both company groups and the detailed cross-checking process are documented in the Excel file “company list.xlsx”, located in the folder “Company List”.
+
+#### Variables Collected
+
+We compile variables across several dimensions, summarized below:
+1. Company Information:
+
+- Company name, ticker, currency, industry, sector, and country.
+
+2. Financial and Market Data:
+
+To capture firm performance from multiple perspectives, we categorize financial variables as follows:
+
+- Stock Price: </br>
+Collected for two reference dates: 2024-12-31 (to align with the fiscal-year-end snapshot) and 2025-10-17 (the date of data acquisition).
+- Profitability Metrics: </br>
+Revenue, Net Income, Operating Margin, Gross Margin, ROE, ROA, Profit Margin, EBITDA Margin, and EPS. These variables reflect operational efficiency and profitability and allow testing whether ESG leaders exhibit superior or more stable performance.
+- Valuation Metrics: </br>
+Market Capitalization, P/E Ratio, P/B Ratio, and Annual Return — used to assess whether the market values ESG leaders at a premium and whether they show lower risk.
+- Risk and Stability Metrics: </br>
+Beta, Debt-to-Equity Ratio, Current Ratio, and (Operating / Free) Cash Flow. These indicators provide insight into a firm’s leverage, liquidity, and resilience.
+- Growth Metrics: </br>
+Revenue Growth and other expansion indicators, used to test whether ESG-oriented firms achieve higher or more sustainable growth.
+
+All financial data correspond to a **2024-12-31** snapshot, ensuring alignment with the same reporting period as the ESG scores.
+
+3. ESG Scores:
+
+The ESG dataset includes both aggregate and dimension-level measures:
+
+- Total ESG Risk Score, Environmental Risk Score, Social Risk Score, and Governance Risk Score.
+- Highest Controversy Level (0–5 scale), capturing the severity of historical ESG-related incidents.
+- ESG Performance Category — including UNDER_PERF, AVG_PERF, and OUT_PERF — indicating whether the company underperforms, performs similarly to, or outperforms peers in ESG practices.
+
+### Data Extraction via API
+
+We developed the following Python script to extract data via the Yahoo Finance API. By modifying the input parameter (`swiss_companies.txt` and `S&P_companies.txt`), we generated separate datasets for Swiss and S&P companies.
+
+The complete implementation can be found in the Data folder as data_acquisition.py, and the downloaded datasets are stored in the Data folder as esg_financial_analysis_spi.csv and esg_financial_analysis_sp500.csv.
+
+## Data Cleansing
+
+Following the data acquisition process, the raw datasets were imported for cleansing and preprocessing. This step involved loading the data and necessary packages, checking for missing or inconsistent values, identifying outliers, and ensuring all financial metrics and ESG scores were correctly formatted for further analysis.
+
+
+
+### Load Data
+
+Firstly, we load the two datasets to begin the data cleansing process.
 
 ```{python}
 #| label: load-data
- spi = pd.read_csv("Data/esg_financial_analysis_spi.csv")
-sp500 = pd.read_csv("Data/esg_financial_analysis_sp500.csv")
+spi = pd.read_csv(Path("Data/esg_financial_analysis_spi.csv"))
+sp500 = pd.read_csv(Path("Data/esg_financial_analysis_sp500.csv"))
 ```
+
+Then we check the structure of the SPI dataset. It contains 201 observations with 34 variables.
+On the first glance, we see that we don't have all variables of all observations. We therefore need to look into that closer.
+
+(i.e. 142 Total ESG Scores out of 201 observations)
 
 ```{python}
 #| label: SPI-overview
@@ -58,8 +142,1232 @@ print(spi.shape)
 spi.describe()
 ```
 
+We do the same for the S&P 500 dataset. It contains 503 observations with 34 variables.
+
+Here we see as well that we have some NAs for certain variables.
+
 ```{python}
-#| label: SP500-overview
+#| label: SPI500-overview
 print(sp500.shape)
 sp500.describe()
 ```
+
+### Check Missing Data
+
+*Remark MT: cant we remove this first step because we handle it in more detail later?* </br>
+We now look into more detail of missing data: We look at the count and the percentage of the amount of data missing. </br>
+Especially for the ESG, we see some missing data which we need to look into closer.
+
+```{python}
+#| label: missing-data-function
+def missing_summary(df, name):
+    missing_count = df.isnull().sum()
+    missing_pct = (missing_count / len(df) * 100).round(2)
+    return pd.DataFrame({
+        "Dataset": name,
+        "Missing Count": missing_count,
+        "Missing %": missing_pct
+    })
+```
+
+```{python}
+#| label: missing-data-SPI
+missing_summary(spi, "SPI")
+```
+
+```{python}
+#| label: missing-data_SP500
+missing_summary(sp500, "SP500")
+```
+
+#### Missing ESG data
+
+```{python}
+#| label: missing-esg-data
+def check_esg_missing(df, name):
+    """Check proportion of missing ESG scores"""
+    esg_columns = ['Total_ESG_Score', 'Environmental_Score', 'Social_Score', 'Governance_Score', 'ESG_Performance', 'Highest_Controversy']
+    esg_scores_columns = ['Total_ESG_Score', 'Environmental_Score', 'Social_Score', 'Governance_Score']
+    
+    print(f"\n{name} - ESG Data Availability:")
+    for col in esg_columns:
+        if col in df.columns:
+            missing_count = df[col].isnull().sum()
+            missing_pct = (missing_count / len(df) * 100)
+            print(f"  {col}: {missing_count}/{len(df)} missing ({missing_pct:.2f}%)")
+    
+    # Overall ESG availability
+    has_total_esg = df[['Total_ESG_Score']].notnull().all(axis=1)
+    has_all_esg_scores = df[esg_scores_columns].notnull().all(axis=1)
+    has_all_esg_data = df[esg_columns].notnull().all(axis=1)
+    companies_with_total_esg = has_total_esg.sum()
+    companies_without_total_esg = len(df) - companies_with_total_esg
+    companies_with_all_esg_scores = has_all_esg_scores.sum()
+    companies_with_all_esg_data = has_all_esg_data.sum()
+    
+    print(f"\n  Companies WITHOUT Total ESG scores: {companies_without_total_esg} ({companies_without_total_esg/len(df)*100:.2f}%)")
+    print(f"  Companies WITH Total ESG score: {companies_with_total_esg} ({companies_with_total_esg/len(df)*100:.2f}%)")
+    print(f"  Companies WITH all ESG scores: {companies_with_all_esg_scores} ({companies_with_all_esg_scores/len(df)*100:.2f}%)")
+    print(f"  Companies WITH all ESG data: {companies_with_all_esg_data} ({companies_with_all_esg_data/len(df)*100:.2f}%)")
+
+spi_no_esg = check_esg_missing(spi, "SPI")
+sp500_no_esg = check_esg_missing(sp500, "S&P 500")
+```
+
+Missing ESG data in the S&P 500 dataset is negligible, but in SPI dataset, only 71/201 companies have full ESG data, and 142 have Total ESG Score as well as ESG_Performance indicator. Removing the 130 companies without detailed scores would be too much, instead, we could remove 59/201 SPI companies without the Total ESG Score, and consider dividing the remaining companies into two subgroups for further analysis: 
+
+- 142 companies with Total ESG Score 
+- and 71 with full ESG data
+
+```{python}
+#| label: spi-esg-drop-na
+spi_esg = spi.dropna(subset=['Total_ESG_Score'])
+print(spi_esg.shape)
+print(spi_esg['Total_ESG_Score'].isnull().sum())
+```
+
+```{python}
+#| label: sp500-esg-drop-na
+sp500_esg = sp500.dropna(subset=['Total_ESG_Score'])
+print(sp500_esg.shape)
+print(sp500_esg['Total_ESG_Score'].isnull().sum())
+```
+
+#### Country Issues
+
+Next, we look at the countries of the companies to identify whether some firms listed in the SPI dataset are actually non-Swiss and to understand the distribution, in order to decide whether to exclude them.
+
+```{python}
+#| label: non_swiss-spi_esg-count
+non_swiss = spi_esg[spi_esg["Country"] != "Switzerland"]
+print(non_swiss[['Ticker', 'Company_Name', 'Country', 'Total_ESG_Score']].to_string())
+```
+
+Considering that 5 out of 201 companies in the SPI dataset are non-Swiss, we decided to remove these non-Swiss firms to ensure better consistency and comparability in our analysis.
+
+```{python}
+#| label: spi-esg-remove-non-swiss
+spi_esg = spi_esg[spi_esg["Country"] == "Switzerland"]
+```
+
+Next, we check if companies in the SPI are also in the S&P 500, as a few multinational corporations might appear in both the SPI and S&P 500 datasets.
+
+```{python}
+#| label: check-sp500-swiss
+sp500_swiss = sp500_esg[sp500_esg["Country"] == "Switzerland"]
+print(sp500_swiss[['Ticker', 'Company_Name', 'Country', 'Total_ESG_Score']].to_string())
+```
+
+```{python}
+#| label: check_duplicates-sp500
+check_duplicates = sp500_esg['Company_Name'].tolist()
+matching_spi = spi_esg[spi_esg['Company_Name'].isin(check_duplicates)]
+
+print(matching_spi[['Ticker', 'Company_Name', 'Country', 'Total_ESG_Score']].to_string())
+```
+
+So: No overlapping companies
+
+We want to see the distribution of countries in the S&P dataset. Because approx 96% of the companies are based in the US, we decide to focus on Swiss vs. US companies.
+
+```{python}
+#| label: country_counts-sp500
+
+country_counts = sp500_esg['Country'].value_counts(dropna=False)
+country_pct = (country_counts / len(sp500_esg) * 100).round(2)
+
+country_summary = pd.DataFrame({
+    'Count': country_counts,
+    'Percentage (%)': country_pct
+})
+
+print("S&P 500 — Country distribution:")
+display(country_summary)
+```
+
+```{python}
+#| label: sp500_non-us
+sp500_nonUS = sp500_esg[sp500_esg["Country"] != "United States"]
+print(sp500_nonUS[['Ticker', 'Company_Name', 'Country', 'Total_ESG_Score']].to_string())
+```
+
+Again, we remove those non-US companies.
+
+```{python}
+#| label: sp500-US-only
+sp500_esg = sp500_esg[sp500_esg["Country"] == "United States"]
+```
+
+#### Fix Company Name
+
+```{python}
+#| label: spi-company_name-na
+spi_esg[spi_esg["Company_Name"].isna()]
+```
+
+```{python}
+#| label: spi-company_name-fillna
+spi_esg['Company_Name'].fillna("Galderma", inplace=True)
+spi_esg[spi_esg["Company_Name"].isna()]
+```
+
+```{python}
+#| label: sp500-company_name-na
+sp500_esg[sp500_esg["Company_Name"].isna()]
+```
+
+#### Check Duplicates by Company Name
+
+```{python}
+#| label: spi_duplicates
+
+spi_duplicates = spi_esg[spi_esg.duplicated(subset=['Company_Name'], keep=False)]
+print(spi_duplicates.to_string())
+```
+
+```{python}
+#| label: spi-remove-duplicates
+# Keep SCHN.SW (Registered Shares) and remove SCHP.SW (Participation Certificates)
+# since SCHN.SW reflects the company’s core ESG profile
+spi_esg = spi_esg[spi_esg["Ticker"] != "SCHP.SW"]
+spi_esg.shape
+```
+
+```{python}
+#| label: sp500_duplicates
+sp500_duplicates = sp500_esg[sp500_esg.duplicated(subset=['Company_Name'], keep=False)]
+print(sp500_duplicates[['Ticker', 'Company_Name', 'Total_ESG_Score','Environmental_Score', 'Stock_Price']].to_string())
+```
+
+```{python}
+#| label: sp500_esg-shape
+sp500_esg.shape
+```
+
+####  Other Missing Data
+
+```{python}
+#| label: summary-spi_esg-spi
+missing_summary(spi_esg, "SPI")
+```
+
+```{python}
+#| label: missing_minor_columns
+missing_minor_columns = [
+    'Highest_Controversy', 'Stock_Price', 'Revenue',
+    'ROE_Pct', 'ROA_Pct', 'Beta'
+]
+
+spi_missing_minor_data = spi_esg[spi_esg[missing_minor_columns].isnull().any(axis=1)]
+print(spi_missing_minor_data[['Company_Name'] + missing_minor_columns].to_string(index=False))
+```
+
+Suggested Strategies for Handling Missing Data:
+
+Given that only 136 companies have a Total ESG Score, better avoid removing further companies due to other missing values.
+
+1.	Missing values in Highest_Controversy, Stock_Price, Revenue, ROA_% (1 case each), ROE_% (3 cases), and Beta (2 cases) are negligible and unlikely to bias results.
+2.	Exclude `PE_Ratio` from the analysis, which is similar to `Market_Cap`.
+3.	Exclude `EBITDA_Margin_%`, which it is similar to `Profit_Margin_%`.
+4.	Beta, Debt_to_Equity, Current_Ratio, Operating_Cash_Flow are all risk and stability indicators, we can use only `Beta`, which has less missing data and better captures systematic market risk.
+
+```{python}
+#| label: summary-sp500_esg-sp50
+missing_summary(sp500_esg, "SP500")
+```
+
+TODO: depending on which metrics and industries we choose to further analyze, we may need to further remove some data from S&P 500 due to unbalanced size of two datasets and missing data. However, S&P 500 dataset is mainly for support and comparison, so here we don't go deeper with this dataset and adjust this dataset according to SPI dataset.
+
+```{python}
+#| label: remove-columns-with-large-missing-data
+# Remove columns with large missing data
+missing_large_columns = [
+    'PE_Ratio', 'EBITDA_Margin_Pct', 'Debt_to_Equity',
+    'Current_Ratio', 'Operating_Cash_Flow'
+]
+spi_esg = spi_esg.drop(columns=missing_large_columns)
+sp500_esg = sp500_esg.drop(columns=missing_large_columns)
+```
+
+Summary: After cleaning missing data, we retained 134 Swiss companies in the SPI group and 280 US companies in the S&P 500 group.
+
+### Check and Fix Data Types
+
+```{python}
+#| label: spi_esg-dtypes
+spi_esg.dtypes
+```
+
+```{python}
+#| label: def-fix_datatypes-df-name
+def fix_datatypes(df, name):
+    """Ensure columns have appropriate data types"""
+    print(f"\n{name} - Fixing Data Types:")
+    
+    # Numeric columns that should be float
+    numeric_cols = ['Total_ESG_Score', 'Environmental_Score', 'Social_Score', 'Governance_Score',
+                'Stock_Price', 'Current_Price', 'Market_Cap', 'PB_Ratio', 'Annual_Return_Pct',
+                'Revenue', 'Net_Income', 'Operating_Margin_Pct', 'Gross_Margin_Pct', 'ROE_Pct', 'ROA_Pct',
+                'Profit_Margin_Pct', 'EPS', 'Beta', 'Revenue_Growth_Pct']
+
+    for col in numeric_cols:
+        if col in df.columns:
+            original_type = df[col].dtype
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            if original_type != df[col].dtype:
+                print(f"  {col}: {original_type} → {df[col].dtype}")
+    
+    # Integer columns
+    int_cols = ['Highest_Controversy']
+    for col in int_cols:
+        if col in df.columns:
+            original_type = df[col].dtype
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            if original_type != df[col].dtype:
+                print(f"  {col}: {original_type} → {df[col].dtype}")
+    
+    # Categorical columns
+    categorical_cols = ['Currency', 'Sector', 'Industry', 'Country', 'ESG_Performance', 'Status']
+    for col in categorical_cols:
+        if col in df.columns:
+            original_type = df[col].dtype
+            df[col] = df[col].astype('category')
+            if str(original_type) != 'category':
+                print(f"  {col}: {original_type} → category")
+    
+    # Date column
+    if 'Data_Date' in df.columns:
+        df['Data_Date'] = pd.to_datetime(df['Data_Date'], errors='coerce')
+        print(f"  Data_Date: → datetime64")
+
+    # Object column
+    for col in ['Ticker', 'Company_Name']:
+        if col in df.columns:
+            original_type = df[col].dtype
+            df[col] = df[col].astype(object)
+            if original_type != df[col].dtype:
+                print(f"  {col}: {original_type} → object")
+    
+    return df
+
+spi_esg = fix_datatypes(spi_esg, "SPI")
+sp500_esg = fix_datatypes(sp500_esg, "S&P 500")
+```
+
+### Check Value Ranges and Remove Errors
+
+#### Numeric Data
+
+```{python}
+#| label: def-check_value_ranges-df-name
+def check_value_ranges(df, name):
+    """Check value ranges and return DataFrame of all exceptions (errors + warnings) without deleting rows"""
+    print(f"\n{name} - Value Range Checks:")
+
+    warnings_list = []
+
+    # ESG scores should be 0-100
+    esg_cols = ['Total_ESG_Score', 'Environmental_Score', 'Social_Score', 'Governance_Score']
+    for col in esg_cols:
+        if col in df.columns:
+            invalid = (df[col] < 0) | (df[col] > 100)
+            if invalid.sum() > 0:
+                print(f"  ERROR in {col}: {invalid.sum()} values outside [0, 100]")
+                warnings_list.append(df.loc[invalid, ['Company_Name', col]])
+
+    # Controversy should be 0-5
+    if 'Highest_Controversy' in df.columns:
+        invalid = (df['Highest_Controversy'] < 0) | (df['Highest_Controversy'] > 5)
+        if invalid.sum() > 0:
+            print(f"  ERROR in Highest_Controversy: {invalid.sum()} values outside [0, 5]")
+            warnings_list.append(df.loc[invalid, ['Company_Name', 'Highest_Controversy']])
+
+    # Stock prices should be positive
+    for col in ['Stock_Price', 'Current_Price']:
+        if col in df.columns:
+            invalid = df[col] <= 0
+            if invalid.sum() > 0:
+                print(f"  ERROR in {col}: {invalid.sum()} non-positive values")
+                warnings_list.append(df.loc[invalid, ['Company_Name', col]])
+
+    # Market cap should be positive
+    if 'Market_Cap' in df.columns:
+        invalid = df['Market_Cap'] <= 0
+        if invalid.sum() > 0:
+            print(f"  ERROR in Market_Cap: {invalid.sum()} non-positive values")
+            warnings_list.append(df.loc[invalid, ['Company_Name', 'Market_Cap']])
+
+    # Margins reasonable (-100% to 100%)
+    margin_cols = ['Operating_Margin_Pct', 'Gross_Margin_Pct', 'Profit_Margin_Pct']
+    for col in margin_cols:
+        if col in df.columns:
+            invalid = (df[col] < -100) | (df[col] > 100)
+            if invalid.sum() > 0:
+                print(f"  WARNING in {col}: {invalid.sum()} values outside [-100, 100]")
+                warnings_list.append(df.loc[invalid, ['Company_Name', col]])
+
+    # ROE and ROA reasonable (-100% to 200%)
+    for col in ['ROE_Pct', 'ROA_Pct']:
+        if col in df.columns:
+            invalid = (df[col] < -100) | (df[col] > 200)
+            if invalid.sum() > 0:
+                print(f"  WARNING in {col}: {invalid.sum()} values outside [-100, 200]")
+                warnings_list.append(df.loc[invalid, ['Company_Name', col]])
+
+    # Combine warning/error rows
+    if warnings_list:
+        df_errors = pd.concat(warnings_list).drop_duplicates()
+    else:
+        df_errors = pd.DataFrame(columns=df.columns)
+
+    print(f"  Total rows with warnings/errors: {df_errors.shape[0]}")
+    return df_errors
+```
+
+```{python}
+#| label: spi_esg_errors-check_value_ranges
+spi_esg_errors = check_value_ranges(spi_esg, "SPI")
+sp500_esg_errors = check_value_ranges(sp500_esg, "S&P 500")
+
+print(spi_esg_errors)
+```
+
+```{python}
+#| label: print-sp500_esg_errors
+print(sp500_esg_errors)
+```
+
+Margin and Return data are just warning (or might be considered outliers) but here should not be removed since some companies can have extreme margins and returns
+
+#### Categorical Data
+
+```{python}
+#| label: categorical_cols-currency-sect
+categorical_cols = ['Currency', 'Sector', 'Industry', 'Country', 'ESG_Performance', 'Status']
+for col in categorical_cols:
+    print(col)
+    print(spi_esg[col].value_counts())
+```
+
+```{python}
+#| label: for-col-in-categorical_cols
+for col in categorical_cols:
+    print(col)
+    print(sp500_esg[col].value_counts())
+```
+
+#### Integer Data
+
+```{python}
+#| label: cell-80-print-spi_esg-highest_controversy
+print(spi_esg['Highest_Controversy'].value_counts())
+```
+
+```{python}
+#| label: sp500_esg-highest_controversy
+print(sp500_esg['Highest_Controversy'].value_counts())
+```
+
+### Identify and Treat Outliers
+
+#### Identify using IQR Method
+
+```{python}
+#| label: def-identify_outliers
+def identify_outliers(df, name):
+    """Identify outliers using IQR method"""
+    print(f"\n{name} - Outlier Detection:")
+
+    numeric_cols = ['Total_ESG_Score', 'Environmental_Score', 'Social_Score', 'Governance_Score',
+                'Stock_Price', 'Current_Price', 'Market_Cap', 'PB_Ratio', 'Annual_Return_Pct',
+                'Revenue', 'Net_Income', 'Operating_Margin_Pct', 'Gross_Margin_Pct', 'ROE_Pct', 'ROA_Pct',
+                'Profit_Margin_Pct', 'EPS', 'Beta', 'Revenue_Growth_Pct']
+
+    outlier_summary = {}
+
+    for col in numeric_cols:
+        if col in df.columns and df[col].notna().sum() > 0:
+            Q1 = df[col].quantile(0.25)
+            Q3 = df[col].quantile(0.75)
+            IQR = Q3 - Q1
+            
+            lower_bound = Q1 - 3 * IQR  # Using 3*IQR for extreme outliers only
+            upper_bound = Q3 + 3 * IQR
+            
+            outliers = (df[col] < lower_bound) | (df[col] > upper_bound)
+            outlier_count = outliers.sum()
+            
+            if outlier_count > 0:
+                outlier_summary[col] = {
+                    'count': outlier_count,
+                    'percentage': outlier_count / df[col].notna().sum() * 100,
+                    'lower_bound': lower_bound,
+                    'upper_bound': upper_bound,
+                    'outlier_indices': df[outliers].index.tolist()
+                }
+                
+                print(f"\n  {col}:")
+                print(f"    Outliers found: {outlier_count} ({outlier_count/df[col].notna().sum()*100:.2f}%)")
+                print(f"    Expected range: [{lower_bound:.2f}, {upper_bound:.2f}]")
+                print(f"    Actual range: [{df[col].min():.2f}, {df[col].max():.2f}]")
+    
+    return outlier_summary
+```
+
+```{python}
+#| label: spi_outliers-identify_outliers
+spi_outliers = identify_outliers(spi_esg, "SPI")
+```
+
+```{python}
+#| label: p500_outliers
+sp500_outliers = identify_outliers(sp500_esg, "S&P 500")
+```
+
+#### isualize using Boxplot
+
+```{python}
+#| label: plot_outliers-df-name
+
+def plot_outliers(df, name):
+    """Plot boxplots for numeric columns to visualize outliers"""
+    numeric_cols = ['Total_ESG_Score', 'Environmental_Score', 'Social_Score', 'Governance_Score',
+                    'Stock_Price', 'Current_Price', 'Market_Cap', 'PB_Ratio', 'Annual_Return_Pct',
+                    'Revenue', 'Net_Income', 'Operating_Margin_Pct', 'Gross_Margin_Pct', 'ROE_Pct', 'ROA_Pct',
+                    'Profit_Margin_Pct', 'EPS', 'Beta', 'Revenue_Growth_Pct']
+
+    for col in numeric_cols:
+        if col in df.columns and df[col].notna().sum() > 0:
+            plt.figure(figsize=(8, 4))
+            sns.boxplot(x=df[col], showfliers=True)
+            plt.title(f"{name} - {col} Boxplot with Outliers")
+            plt.xlabel(col)
+            plt.show()
+```
+
+```{python}
+#| label: plot_outliers-spi
+plot_outliers(spi_esg, "SPI")
+```
+
+Boxplots help us visually identify where extreme values occur for specific metrics. Given that our effective ESG sample size is limited, we do not handle extreme values during the data preparation stage, as such extreme values may be legitimate.
+
+TODO: Addressing outliers (keep or remove them) during the analysis and comparison of specific metrics, based on the observed distributions
+
+### Enrich Dataset with Additional Information
+
+#### Add Company_Type column for identification before merging
+
+```{python}
+#| label: company_type
+spi_esg['Company_Type'] = "SPI"
+sp500_esg['Company_Type'] = "S&P 500"
+```
+
+#### ESG Risk Classification
+
+Yahoo Finance utilizes Sustainalytics’ ESG Risk Ratings, which categorize companies into five levels: Negligible, Low, Medium, High, and Severe. These ratings are visually represented using ESG Globe icons, where **Low numbers indicate a low risk, whereas higher numbers indicate a higher risk**. This classification is widely used in ESG data analysis and investment decision-making.
+
+**ESG Risk Categories at Overall Level** 
+(according to [ESG Risk Ratings Methodology](https://www.sustainalytics.com/docs/knowledgehublibraries/default-document-library/sustainalytics_-esg-risk-ratings_-version-3-1_-methodology-abstract_-june-2024.pdf))
+
+A company’s ESG Risk Ratings score on Overall Level is assigned to one of five ESG risk categories in the ESG Risk Ratings:
+
+- Negligible risk (overall unmanaged risk score between 0 and 9.99 points): ESG factors are considered to drive negligible risk to enterprise value.
+- Low risk (overall unmanaged risk score between 10 and 19.99 points): ESG factors are considered to drive low risk to enterprise value.
+- Medium risk (overall unmanaged risk score between 20 and 29.99 points): ESG factors are considered to drive medium risk to enterprise value.
+- High risk (overall unmanaged risk score between 30 and 39.99 points): ESG factors are considered to drive high risk to enterprise value.
+- Severe risk (overall unmanaged risk score 40 points and above): ESG factors are considered to drive severe risk to enterprise value.
+
+Note: Because ESG risks materialize at an unknown time in the future and depend on a variety of unpredictable conditions, no predictions on financial or share price impacts, or on the time horizon of such impacts, are intended or implied by these risk categories.
+
+```{python}
+#| label: categorize_esg_risk-score
+def categorize_esg_risk(score):
+    if pd.isna(score):
+        return np.nan
+    elif score < 10:
+        return 'Negligible'
+    elif score < 20:
+        return 'Low'
+    elif score < 30:
+        return 'Medium'
+    elif score < 40:
+        return 'High'
+    else:
+        return 'Severe'
+    
+spi_esg['ESG_Risk_Category'] = spi_esg['Total_ESG_Score'].apply(categorize_esg_risk)
+spi_esg['ESG_Risk_Category'] = spi_esg['ESG_Risk_Category'].astype('category')
+```
+
+```{python}
+#| label: risk_category-in-data
+sp500_esg['ESG_Risk_Category'] = sp500_esg['Total_ESG_Score'].apply(categorize_esg_risk)
+sp500_esg['ESG_Risk_Category'] = sp500_esg['ESG_Risk_Category'].astype('category')
+```
+
+#### Reorder columns for better readability
+
+```{python}
+#| label: cols-list
+cols = list(spi_esg.columns)
+cols.remove('Company_Type')
+idx = cols.index('Company_Name') + 1
+cols.insert(idx, 'Company_Type')
+spi_esg = spi_esg[cols]
+```
+
+```{python}
+#| label: cols-list2
+cols = list(spi_esg.columns)
+cols.remove('ESG_Risk_Category')
+idx = cols.index('Country') + 1
+cols.insert(idx, 'ESG_Risk_Category')
+spi_esg = spi_esg[cols]
+```
+
+```{python}
+#| label: cols-list-sp500
+cols = list(sp500_esg.columns)
+cols.remove('Company_Type')
+idx = cols.index('Company_Name') + 1
+cols.insert(idx, 'Company_Type')
+
+cols.remove('ESG_Risk_Category')
+idx = cols.index('Country') + 1
+cols.insert(idx, 'ESG_Risk_Category')
+
+sp500_esg = sp500_esg[cols]
+```
+
+### Format Dataset for Analysis
+
+#### Remove columns with identical value
+
+```{python}
+#| label: clean
+esg_clean = pd.concat([spi_esg, sp500_esg], ignore_index=True)
+```
+
+```{python}
+#| label: cols_to_drop
+cols_to_drop = [col for col in esg_clean.columns if esg_clean[col].nunique() == 1]
+
+esg_clean = esg_clean.drop(columns=cols_to_drop)
+
+print("Dropped columns:", cols_to_drop)
+```
+
+#### Save Cleaned Datasets
+
+```{python}
+#| label: to_csv
+esg_clean.to_csv("Data/cleaned_combined_data.csv", index=False)
+```
+
+## Applied Analysis Methods 
+TBD
+
+# Visualization - delete completely???
+
+## Light Exploratory Data Analysis
+- Industry Distribution
+- ESG Distribution
+
+### Industry Distribution
+
+```{python}
+#| label: top-10-industries
+top_industries = esg_clean['Industry'].value_counts().head(10).index
+top_ind = esg_clean[esg_clean['Industry'].isin(top_industries)]
+
+industry_type_counts = pd.crosstab(top_ind['Industry'], top_ind['Company_Type'])
+industry_type_counts = industry_type_counts[['SPI', 'S&P 500']]
+industry_type_counts['Total'] = industry_type_counts.sum(axis=1)
+industry_type_counts = industry_type_counts.sort_values(by='Total', ascending=True)
+industry_type_counts = industry_type_counts.drop(columns='Total')
+
+# figure
+industry_type_counts.plot(kind='barh', stacked=True, 
+                         color=['#2E86AB', '#A23B72'])
+
+plt.xlabel('Number of Companies', fontsize=11)
+plt.ylabel('Industry', fontsize=11)
+plt.title('Top 10 Industries (SPI + S&P 500)', fontsize=12, fontweight='bold')
+plt.legend(title='Company Type', fontsize=9)
+plt.grid(axis='x', alpha=0.3)
+
+plt.show()
+```
+
+**Top 10 Industries according to SPI counts**
+
+```{python}
+#| label: spi_companies
+spi_companies = esg_clean[esg_clean['Company_Type'] == 'SPI']
+top_spi_industries = spi_companies['Industry'].value_counts().head(10).index
+
+top_spi_ind = esg_clean[esg_clean['Industry'].isin(top_spi_industries)]
+
+industry_spi_counts = pd.crosstab(top_spi_ind['Industry'], top_spi_ind['Company_Type'])
+industry_spi_counts = industry_spi_counts[['SPI', 'S&P 500']]
+industry_spi_counts = industry_spi_counts.sort_values(by='SPI', ascending=True)
+
+industry_spi_counts.plot(kind='barh', stacked=True, 
+                          color=['#2E86AB', '#A23B72'])
+
+plt.xlabel('Number of Companies', fontsize=11)
+plt.ylabel('Industry', fontsize=11)
+plt.title('Top 10 Industries (SPI)', fontsize=12, fontweight='bold')
+plt.legend(title='Company Type', fontsize=9)
+plt.grid(axis='x', alpha=0.3)
+plt.tight_layout()
+
+plt.show()
+```
+
+### ESG Distribution
+
+```{python}
+#| label: cell-116-plt-figure-figsize-6-4
+plt.figure(figsize=(6,4))
+plt.hist(esg_clean[esg_clean['Company_Type']=='SPI']['Total_ESG_Score'].dropna(), bins=25, alpha=0.6, label='SPI')
+plt.hist(esg_clean[esg_clean['Company_Type']=='S&P 500']['Total_ESG_Score'].dropna(), bins=25, alpha=0.6, label='S&P 500')
+plt.xlabel('Total ESG Score')
+plt.ylabel('Frequency')
+plt.title('Total ESG Score Distribution')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.show()
+```
+
+```{python}
+#| label: cell-117-esg_cols-total_esg_score-envir
+
+esg_cols = ['Total_ESG_Score', 'Environmental_Score', 'Social_Score', 'Governance_Score']
+esg_labels = ['Total ESG', 'Environmental (E)', 'Social (S)', 'Governance (G)']
+
+fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+axes = axes.flatten()
+
+for i, col in enumerate(esg_cols):
+    sns.boxplot(data=esg_clean, x='Company_Type', y=col, ax=axes[i], palette=['#2E86AB', '#A23B72'])
+    axes[i].set_title(f'{esg_labels[i]} Comparison', fontsize=12, fontweight='bold')
+    axes[i].grid(axis='y', alpha=0.3)
+    axes[i].set_xlabel('')
+    axes[i].set_ylabel('Score')
+
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#| label: cell-118-plt-figure-figsize-7-4
+
+plt.figure(figsize=(7,4))
+pd.crosstab(esg_clean['ESG_Risk_Category'], esg_clean['Company_Type']).plot(kind='bar', color=['#2E86AB', '#A23B72'])
+plt.xlabel('ESG Risk Category')
+plt.ylabel('Number of Companies')
+plt.title('ESG Risk Category Distribution')
+plt.grid(axis='y', alpha=0.3)
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#| label: cell-119-esg_means-esg_clean-groupby-co
+
+esg_means = esg_clean.groupby('Company_Type')[esg_cols].mean().round(2)
+print(esg_means)
+```
+
+# Analysis & discussion of results
+
+## RQ1: Relationship between financial performance and ESG
+
+Firstly, we look at the dataset for the analysis more closely:
+
+```{python}
+#| label: prepare-dataset
+# only SPI dataset from merged data
+ch = esg_clean.query("Company_Type == 'SPI'").copy()
+
+# log transformed market cap to smoothen extreme values
+ch["log_mc"] = np.log1p(ch["Market_Cap"])
+
+#choose only those entries with complete data in the necessary variables
+vars_needed_1 = [
+    "Annual_Return_Pct",
+    "Total_ESG_Score",
+    "log_mc",
+    "Revenue_Growth_Pct",
+    "Industry"
+]
+
+# drop rows with missing values
+ch_clean = ch.dropna(subset=vars_needed_1).copy()
+print("N after drop NA:", len(ch_clean))
+ch_clean[vars_needed_1].describe()
+
+
+# Check range of ESG and Return values
+print("ESG range:", ch_clean["Total_ESG_Score"].min(), "-", ch_clean["Total_ESG_Score"].max())
+print("Return range:", ch_clean["Annual_Return_Pct"].min(), "-", ch_clean["Annual_Return_Pct"].max())
+
+# Industry representation
+print("Industries:", ch_clean["Industry"].nunique())
+print(ch_clean["Industry"].value_counts().head(10))
+```
+
+- The number of companies per industry reaches a maximum of 14, which is expected given the dataset of only 136 observations.
+- ESG risk scores vary widely, from negligible to severe levels.
+- The range of annual returns is also quite broad, with extreme outliers showing losses of up to -100% and gains exceeding +250%. We reviewed the outliers and excluded them for further analysis.
+
+```{python}
+#| label: annual-return-histogram-boxplot
+# Histogram + Boxplot
+fig, ax = plt.subplots(1, 2)
+
+ax[0].hist(ch_clean["Annual_Return_Pct"], bins=40)
+ax[0].axvline(0, linestyle="--")
+ax[0].set_title("Histogram - Annual Return")
+ax[0].set_xlabel("Annual Return (%)"); ax[0].set_ylabel("Count")
+
+ax[1].boxplot(ch_clean["Annual_Return_Pct"].dropna(), vert=False, showfliers=True)
+ax[1].set_title("Boxplot - Annual Return")
+ax[1].set_xlabel("Annual Return (%)")
+
+plt.tight_layout(); plt.show()
+```
+
+```{python}
+#| label: remove-outliers
+Q1 = ch_clean["Annual_Return_Pct"].quantile(0.25)
+Q3 = ch_clean["Annual_Return_Pct"].quantile(0.75)
+IQR = Q3 - Q1
+
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+
+print(f"Q1: {Q1:.2f}, Q3: {Q3:.2f}, IQR: {IQR:.2f}")
+print(f"Lower bound: {lower_bound:.2f}, Upper bound: {upper_bound:.2f}")
+
+ch_clean_no_outliers = ch_clean[
+    (ch_clean["Annual_Return_Pct"] >= lower_bound) &
+    (ch_clean["Annual_Return_Pct"] <= upper_bound)
+].copy()
+
+print(f"Removed {len(ch_clean) - len(ch_clean_no_outliers)} outliers")
+print(f"Remaining observations: {len(ch_clean_no_outliers)}")
+```
+
+
+We create a scatterplot to analyse the relationship between ESG-risk and annual return visually:
+
+```{python}
+#| label: Annual-return-ESG-score
+#| output: true
+plt.figure()
+sns.regplot(
+    data=ch_clean_no_outliers,
+    x="Total_ESG_Score",
+    y="Annual_Return_Pct",
+    scatter_kws={"alpha":0.5},
+    line_kws={"color":"red"},
+    ci=95
+)
+plt.title("Annual Return vs ESG Score", fontsize=11)
+plt.xlabel("Total ESG Score")
+plt.ylabel("Annual Return (%)")
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+```
+
+The linear fit is horizontal which means that there is no effect of ESG risk on annual performance. This result implies that firms with stronger ESG do not systematically outperform or underperform peers in terms of annual stock returns. </br>
+The broad confidence band further suggests that ESG factors alone have limited explanatory power for short-term returns.
+
+
+Now we run a regression analysis to statistically disentangle the effects and control for several influencing factors, such as:
+
+- **Market capitalization** (log_mc): Larger firms are typically more diversified and stable, which can affect both their ESG performance and returns.
+- **Revenue growth** (Revenue_Growth_Pct): Fast-growing firms may achieve higher returns regardless of ESG, so including growth helps isolate the ESG effect.
+- **Industry**: ESG relevance differs by sector, so industry dummies control for these differences.
+
+```{python}
+#| label: how-many-obs-per-industry
+# How many obs per industry?
+counts = ch_clean_no_outliers["Industry"].value_counts()
+
+# Keine Mindestanzahl mehr – alle Industrien bleiben erhalten
+df_fix = ch_clean_no_outliers.copy()
+df_fix["Industry_grp"] = df_fix["Industry"]
+
+# Refit with industry fixed effects
+m_ret_clean = smf.ols(
+    "Annual_Return_Pct ~ Total_ESG_Score + log_mc + Revenue_Growth_Pct + C(Industry_grp)",
+    data=df_fix
+).fit(cov_type="HC3")  # robust to heteroscedasticity
+
+print(m_ret_clean.summary())
+```
+
+The adjusted R-squared shows that the model explains about 49% of the variance in annual returns.
+
+Contrary to expectations from the visual analysis, the Total ESG Score has a statistically significant effect (coef = 0.91, p = 0.047), but in the opposite direction: higher ESG risk is linked to higher annual returns. The effect is small, with about a 0.9 percentage point increase in return per ESG-risk point.
+
+Log market capitalization is highly significant (coef = 7.22, p < 0.001), indicating that larger firms tend to achieve higher returns, while revenue growth has no significant impact (coef = -0.03, p = 0.78).
+
+## RQ2: Effect of industry type on financial performance and ESG relationship for top 5 Swiss industries
+
+```{python}
+#| label: significant-industries-revenue
+
+top5 = [
+    "Drug Manufacturers - General",
+    "Packaged Foods",
+    "Insurance - Diversified",
+    "Banks - Diversified",
+    "Insurance - Reinsurance"
+]
+
+plot_set = ch_clean_no_outliers[ch_clean_no_outliers["Industry"].isin(top5)].copy()
+
+
+industry_counts = plot_set["Industry"].value_counts().to_dict()
+
+g = sns.lmplot(
+    data=plot_set,
+    x="Total_ESG_Score",
+    y="Annual_Return_Pct",
+    col="Industry",
+    col_wrap=3,
+    height=2,
+    scatter_kws={"alpha": 0.6, "s": 8}
+)
+
+
+g.set_axis_labels("Total ESG Score", "Annual Return (%)", fontsize=8)
+
+for ax in g.axes.flat:
+    industry = ax.get_title().split(" = ")[-1]  
+    n = industry_counts.get(industry, 0)
+    ax.set_title(
+        f"{industry}\n(n={n})",
+        fontsize=8,
+        fontweight="bold",   
+        pad=0
+    )
+    ax.grid(alpha=0.3)
+    ax.tick_params(axis="both", labelsize=7)
+
+plt.subplots_adjust(top=0.85)
+g.fig.suptitle("Annual Return vs ESG Score — Top 5 Industries", fontsize=11)
+plt.show()
+```
+
+Based on the regression results from RQ1, none of the industry coefficients are statistically significant. This means that, after controlling for firm size, revenue growth, and ESG risk, there are no clear industry-specific effects on annual returns. All industry coefficients show large standard errors and high p-values, suggesting that differences across industries are not robust or meaningful in this model.
+
+## RQ3: ESG Subdimensions and Financial Performance
+
+In this section, we explore whether the Environmental (E), Social (S), and Governance (G) components of ESG scores show a clear dependency on companies’ financial performance.  
+The goal is to determine **which ESG dimension contributes most strongly** to explaining financial outcomes.
+
+We focus on the following financial performance indicators:
+- Return on Equity (ROE)
+- Price-to-Earnings Ratio (P/E)
+- Annual Return (calculated from stock price changes)
+
+For each metric, we first inspect pairwise correlations and then run a multiple regression model:
+\[
+\text{Financial Performance} = \beta_0 + \beta_1 E + \beta_2 S + \beta_3 G + \epsilon
+\]
+
+```{python}
+#| label: correlations
+#| output: true
+## Compute correlations
+
+# Select only numeric variables needed for correlation
+corr_vars = ['Environmental_Score', 'Social_Score', 'Governance_Score', 'Total_ESG_Score', 'ROE_Pct', 'Annual_Return_Pct']
+corr_matrix = esg_clean[corr_vars].corr()
+
+plt.figure(figsize=(8,6))
+sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", center=0)
+plt.title("Correlation between ESG dimensions and financial performance")
+plt.show()
+```
+
+The heatmap above shows how the three ESG dimensions (Environmental, Social, and Governance) relate to financial performance indicators such as Return on Equity (ROE) and Annual Return.
+
+The results indicate no strong correlation between ESG factors and financial performance.
+While Environmental and Social scores are moderately correlated with the overall ESG score (E=0.76, S=0.62), their correlations with ROE and Annual Return are close to zero or slightly negative.
+
+This suggests that, within the global dataset, higher ESG scores do not systematically translate into better short-term financial results. The weak correlations may indicate that ESG effects on financial performance are indirect, long-term, or vary strongly across industries.
+
+Next, we quantify the relative contribution of E, S, and G factors using a multiple regression model.
+
+```{python}
+#| label: multiple-regression-for-roe
+#| output: true
+## Multiple regression for ROE
+
+# Select and clean
+cols = ['Environmental_Score', 'Social_Score', 'Governance_Score', 'ROE_Pct']
+df_reg = (esg_clean[cols]
+          .apply(pd.to_numeric, errors='coerce')  # ensure numeric types
+          .dropna()
+          .copy())
+
+# Split X / y
+X = df_reg[['Environmental_Score', 'Social_Score', 'Governance_Score']]
+X = df_reg[['Environmental_Score', 'Social_Score', 'Governance_Score']]
+y = df_reg['ROE_Pct']
+
+# Standardize predictors and KEEP THE INDEX
+scaler = StandardScaler()
+X_scaled_np = scaler.fit_transform(X)
+X_scaled = pd.DataFrame(X_scaled_np, columns=X.columns, index=X.index)
+
+# Add constant term (no hasconst argument)
+X_scaled = sm.add_constant(X_scaled)
+
+# Fit regression
+model = sm.OLS(y.loc[X_scaled.index], X_scaled).fit()
+print(model.summary())
+```
+
+The regression model quantifies the individual contributions of E, S, and G to explaining financial performance (ROE).
+
+The coefficients show that:
+
+- Social factors have a small positive effect on ROE,
+- Environmental and Governance factors are slightly negative,
+- However, none of these effects are statistically significant (all p-values > 0.05).
+
+The model’s R² value of 0.005 means that ESG variables explain less than 1% of the variation in ROE.
+--> Overall, this indicates no clear or significant relationship between ESG subdimensions and profitability at the global level.
+
+We can visualize the relative effect sizes to highlight which ESG pillar matters most.
+
+```{python}
+#| label: build-dataframe-of-coefficients
+#| output: true
+# Build dataframe of coefficients (excluding constant)
+coef_df = pd.DataFrame({
+    'Variable': model.params.index[1:],  # skip constant
+    'Coefficient': model.params.values[1:]
+}).sort_values('Coefficient', ascending=False)
+
+plt.figure(figsize=(6,4))
+sns.barplot(
+    data=coef_df,
+    x='Variable',
+    y='Coefficient',
+    hue='Variable',         
+    palette='viridis',
+    legend=False
+)
+plt.axhline(0, color='gray', linestyle='--')
+plt.title("Relative effect of E, S, G on ROE (standardized predictors)")
+plt.tight_layout()
+plt.show()
+```
+
+The visualization illustrates the relative strength and direction of each ESG dimension’s effect on ROE.
+
+- Social_Score shows the largest positive coefficient, suggesting that firms with stronger social practices may experience slightly higher profitability.
+- Governance_Score shows the largest negative effect, indicating that stricter governance practices might correspond to lower short-term returns.
+- Environmental_Score has only a minor negative influence.
+
+These differences are not statistically significant, but they highlight potential patterns worth further investigation — particularly the consistently positive role of social engagement.
+
+# RQ4: Comparison: Swiss vs. Global Companies
+
+To assess whether the ESG–financial performance relationship differs between **Swiss firms** and **global peers**,  
+we divide the dataset into two groups and compare their correlation and regression results.
+
+This allows us to test whether ESG has a **stronger or weaker link** to financial performance within Switzerland.
+
+```{python}
+#| label: split-datasets
+## Split datasets
+df_swiss = esg_clean[esg_clean['Country'] == 'Switzerland']
+df_global = esg_clean[esg_clean['Country'] != 'Switzerland']
+
+print(f"Swiss companies: {len(df_swiss)}, Global companies: {len(df_global)}")
+```
+
+```{python}
+#| label: compute-correlations-per-group
+#| output: true
+## Compute correlations per group
+def plot_corr_by_group(data, title):
+    corr = data[corr_vars].corr()
+    plt.figure(figsize=(8,6))
+    sns.heatmap(corr, annot=True, cmap="coolwarm", center=0)
+    plt.title(title)
+    plt.show()
+
+plot_corr_by_group(df_swiss, "Swiss Companies: ESG vs Financial Performance")
+plot_corr_by_group(df_global, "Global Companies: ESG vs Financial Performance")
+```
+
+By visually comparing the two correlation heatmaps, we can assess differences in the ESG–performance relationships.  
+The correlation matrix for Swiss companies shows similar patterns to the global sample.
+The Total ESG Score remains strongly correlated with its subdimensions (E=0.75, S=0.64, G=0.43), but correlations with financial indicators (ROE and Annual Return) remain very weak.
+
+Compared to global peers, Swiss firms exhibit a slightly stronger positive link between the Social dimension and financial returns (0.29), which may reflect the high relevance of social responsibility and stakeholder orientation in the Swiss market.
+
+The global results confirm the earlier finding: no meaningful correlation between ESG dimensions and financial performance.
+
+The strongest relationships occur between the ESG subdimensions themselves (e.g., Environmental and Total ESG = 0.77), while ROE and Annual Return correlations remain near zero.
+
+This suggests that for global firms, ESG scores are more internally consistent (E–S–G linked together) than predictive of financial outcomes.
+
+```{python}
+#| label: compare-regression-coefficients
+#| output: true
+## Compare Regression coefficients across groups
+
+def regression_summary(data, y_var='ROE_Pct'):
+    df_reg = data[['Environmental_Score','Social_Score','Governance_Score', y_var]].dropna()
+    X = df_reg[['Environmental_Score','Social_Score','Governance_Score']]
+    y = df_reg[y_var]
+    X_scaled = StandardScaler().fit_transform(X)
+    X_scaled = sm.add_constant(X_scaled)
+    model = sm.OLS(y, X_scaled).fit()
+    return model.params[1:]  # coefficients only
+
+coef_swiss = regression_summary(df_swiss)
+coef_global = regression_summary(df_global)
+
+coef_compare = pd.DataFrame({
+    'Variable': ['Environmental_Score','Social_Score','Governance_Score'],
+    'Swiss': coef_swiss.values,
+    'Global': coef_global.values
+}).melt(id_vars='Variable', var_name='Region', value_name='Coefficient')
+
+plt.figure(figsize=(6,4))
+sns.barplot(data=coef_compare, x='Variable', y='Coefficient', hue='Region', palette='Set2')
+plt.title("Comparison of ESG effects: Swiss vs Global")
+plt.axhline(0, color='gray', linestyle='--')
+plt.show()
+```
+
+The comparison chart highlights how the relative effects of ESG dimensions differ between Swiss and global companies.
+
+- Swiss firms show a strong positive Social effect and a negative Governance effect,
+- Global firms display weaker coefficients overall, with the same general direction.
+
+This suggests that while ESG scores are not strong predictors of profitability, the social component seems more relevant for Swiss companies, possibly due to cultural or regulatory differences emphasizing corporate social responsibility and stakeholder relations.
+
+## Interpretation and Discussion
+
+RQ1: “Is there a clear correlation between ESG and financial performance, and how do E, S, G factors compare in explaining it?”
+Correlation Heatmap (Global sample)
+
+The Total ESG Score shows moderate positive correlations with its subdimensions (E=0.76, S=0.62, G=0.23).
+
+The correlations with financial performance metrics (ROE_Pct, Annual_Return_Pct) are very weak and slightly negative:
+
+ROE vs. Total ESG: -0.065
+
+Annual Return vs. Total ESG: -0.034
+→ This means no strong linear relationship between ESG scores and profitability or returns globally.
+
+OLS Regression (Dependent: ROE_Pct)
+Variable	Coefficient	p-value	Interpretation
+Environmental_Score	-2.08	0.464	Negative but not significant
+Social_Score	+2.25	0.420	Positive but not significant
+Governance_Score	-3.06	0.288	Negative but not significant
+
+R² = 0.005, meaning ESG dimensions together explain less than 1% of ROE variance.
+
+None of the E, S, or G effects are statistically significant → financial performance cannot be predicted by ESG subdimensions in this dataset.
+
+Coefficient Visualization
+
+The bar plot confirms:
+
+Social factors have the most positive relative impact on ROE,
+
+Governance shows the most negative,
+
+Environmental has almost no effect.
+However, none are significant — so these are tendencies, not causal effects.
+
+🟩 Interpretation:
+While the overall ESG score correlates moderately with itself across subdimensions, no clear link exists between ESG and financial performance in the global sample.
+If any effect exists, social responsibility seems to have a more positive association with profitability than environmental or governance factors.
+
+RQ2: “How does the correlation between financial performance and ESG scores compare between Swiss companies and global competitors?”
+Swiss Companies Correlation
+
+Similar to the global sample, Total ESG is strongly correlated with its components (E=0.75, S=0.64, G=0.43).
+
+The relationship with financial metrics remains very weak:
+
+ROE vs. Total ESG: -0.097
+
+Annual Return vs. Total ESG: -0.009
+
+Slightly higher correlations between Social Score and returns (0.29) compared to global peers.
+
+Comparative Bar Chart (Swiss vs Global)
+
+Swiss firms: Strong positive Social impact (+7), strong negative Governance effect (-7).
+
+Global firms: Weaker overall effects — smaller Social impact (+1) and moderate negative Governance (-2).
+
+Environmental effects are minor in both cases.
+
+🟩 Interpretation:
+The direction of effects is consistent between Swiss and global firms, but the magnitude differs:
+
+Swiss companies exhibit stronger positive responsiveness to Social factors and stronger negative sensitivity to Governance ones.
+
+Global firms show weaker effects across all ESG dimensions.
+
+This may reflect differences in:
+
+Corporate governance structures and transparency expectations,
+
+Market maturity,
+
+Cultural emphasis on social responsibility in Switzerland.
+
+4. ESG Subdimensions and Financial Performance
+
+This section examines how environmental (E), social (S), and governance (G) dimensions relate to financial performance, measured through Return on Equity (ROE) and Annual Return.
+Both correlation and OLS regression analyses were conducted for global and Swiss company samples.
+
+Global Results
+
+The correlation matrix indicates only weak relationships between ESG scores and financial performance.
+While the Total ESG Score correlates strongly with its subcomponents (E=0.76, S=0.62, G=0.23), correlations with ROE and Annual Return are negligible.
+The regression analysis confirms that none of the ESG dimensions significantly explain ROE (R² = 0.005).
+Among the three, the Social dimension shows the most positive (though insignificant) effect, suggesting that socially responsible practices might slightly enhance profitability, whereas Governance and Environmental factors show small negative tendencies.
+
+Swiss vs. Global Comparison
+
+The correlation patterns for Swiss companies mirror the global results but with slightly stronger interactions.
+Social and Governance factors have more pronounced coefficients in the Swiss sample:
+
+Social factors appear more positively linked to ROE,
+
+Governance shows a stronger negative relationship,
+
+Environmental remains neutral.
+
+Overall, no significant correlation between ESG and financial performance is found, but the direction and magnitude of ESG subdimension effects differ between Swiss and global companies.
+
+🟢 Conclusion:
+ESG performance does not show a statistically significant effect on financial metrics in either dataset.
+However, social engagement seems to be the most positively associated factor, particularly in the Swiss context, while governance aspects may have a dampening effect on returns.
+
+# Conclusion
+TBD
+
+# References
