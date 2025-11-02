@@ -1,0 +1,65 @@
+---
+title: "Corporate ESG Performance and Financial Market Performance - Feasibility Study"
+author: "Xinmeng Song, Bianca Bernasconi & Marisa Timm (group 107)"
+date: "05 October 2025"
+
+lang: en-GB
+bibliography: references.bib
+csl: apa.csl
+
+format:
+  pdf:
+    documentclass: scrartcl
+    papersize: A4
+    geometry: margin=2.5cm
+    link-citations: true
+    number-sections: true
+    toc: true
+
+execute:
+  include: false
+  echo: false
+  warning: false
+  message: false
+
+---
+
+```{python}
+#| label: libraires
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import datetime
+
+```
+
+# Introduction and Motivation
+
+ESG performance has become an important factor in corporate strategy and financial markets. Meta-analyses show that a majority of studies find a positive relationship between ESG scores. However, there is also a non-negligible share of research reports that report neutral or even negative effects. [@Friede2015; @WhelanAtzClark2021] Our project focuses on Swiss companies to examine whether ESG scores are positively linked to financial performance.
+
+Our research questions are therefore:
+1. What is the relationship between ESG scores and financial performance for Swiss listed companies?
+2. What is the effect of the industry type on this relationship, focusing on the top 5 industries in Switzerland.
+3. If there is a clear dependency of ESG on financial performance, how do the individual effects of Environmental (E), Social (S), and Governance (G) factors compare in explaining this relationship?
+4. How does the relationship between financial performance and research scores behave of Swiss companies compared to peers in the US?
+
+# Data Preparation
+
+```{python}
+#| label: load-data
+ spi = pd.read_csv("Data/esg_financial_analysis_spi.csv")
+sp500 = pd.read_csv("Data/esg_financial_analysis_sp500.csv")
+```
+
+```{python}
+#| label: SPI-overview
+print(spi.shape)
+spi.describe()
+```
+
+```{python}
+#| label: SP500-overview
+print(sp500.shape)
+sp500.describe()
+```

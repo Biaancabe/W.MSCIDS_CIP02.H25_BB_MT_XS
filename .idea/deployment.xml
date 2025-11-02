@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="cip@hs25-047.pds.ls.eee.intern:22 password" remoteFilesAllowedToDisappearOnAutoupload="false">
+    <serverData>
+      <paths name="cip@hs25-047.pds.ls.eee.intern:22 password">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/cip/W.MSCIDS_CIP02.H25_BB_MT_XS" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>
