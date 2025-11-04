@@ -16,6 +16,9 @@ format:
     number-sections: true
     toc: false
 
+engine: jupyter
+jupyter: "quarto-venv"
+
 execute:
   echo: false
   input: false
@@ -823,6 +826,35 @@ A multiple regression using ROE as the dependent variable confirms this pattern 
 - Environmental and Governance: small negative effects.
 
 ```{python}
+#| label: multiple-regression-for-roe
+#| output: true
+## Multiple regression for ROE
+
+# Select and clean
+cols = ['Environmental_Score', 'Social_Score', 'Governance_Score', 'ROE_Pct']
+df_reg = (esg_clean[cols]
+          .apply(pd.to_numeric, errors='coerce')  # ensure numeric types
+          .dropna()
+          .copy())
+
+# Split X / y
+X = df_reg[['Environmental_Score', 'Social_Score', 'Governance_Score']]
+X = df_reg[['Environmental_Score', 'Social_Score', 'Governance_Score']]
+y = df_reg['ROE_Pct']
+
+# Standardize predictors and KEEP THE INDEX
+scaler = StandardScaler()
+X_scaled_np = scaler.fit_transform(X)
+X_scaled = pd.DataFrame(X_scaled_np, columns=X.columns, index=X.index)
+
+# Add constant term (no hasconst argument)
+X_scaled = sm.add_constant(X_scaled)
+
+# Fit regression
+model = sm.OLS(y.loc[X_scaled.index], X_scaled).fit()
+```
+
+```{python}
 #| label: build-dataframe-of-coefficients
 #| output: true
 # Build dataframe of coefficients (excluding constant)
@@ -855,6 +887,13 @@ Overall, ESG subdimensions explain less than 1% of ROE variation — indicating 
 # RQ4: Comparison: Swiss vs. Global Companies
 
 To assess country differences, we compare correlations and regression coefficients between Swiss SPI and global (S&P 500) firms.
+
+```{python}
+#| label: split-datasets
+## Split datasets
+df_swiss = esg_clean[esg_clean['Country'] == 'Switzerland']
+df_global = esg_clean[esg_clean['Country'] != 'Switzerland']
+```
 
 ```{python}
 #| label: compare-regression-coefficients
@@ -998,6 +1037,7 @@ Environmental remains neutral.
 
 Overall, no significant correlation between ESG and financial performance is found, but the direction and magnitude of ESG subdimension effects differ between Swiss and global companies.
 
+
 # Conclusion
 This project examined the relationship between corporate ESG performance and financial market outcomes, focusing primarily on Swiss companies and comparing them to global peers. Using comprehensive ESG and financial data from the Swiss Performance Index and S&P 500, we analyzed correlations and regression models to explore how ESG, its subdimensions, and industry context affect financial performance.
 
@@ -1017,4 +1057,3 @@ Overall Conclusion
 Across all analyses, ESG performance does not emerge as a significant short-term driver of financial success. The relationship between ESG and profitability appears weak and context-dependent, with the social dimension showing the most promise as a positive contributor, particularly among Swiss firms. This supports the view that ESG benefits may materialize more in the long term, through reputational strength, risk mitigation, and stakeholder trust, rather than immediate financial gains.
 
 # References
-
