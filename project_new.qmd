@@ -998,11 +998,23 @@ Environmental remains neutral.
 
 Overall, no significant correlation between ESG and financial performance is found, but the direction and magnitude of ESG subdimension effects differ between Swiss and global companies.
 
-🟢 Conclusion:
-ESG performance does not show a statistically significant effect on financial metrics in either dataset.
-However, social engagement seems to be the most positively associated factor, particularly in the Swiss context, while governance aspects may have a dampening effect on returns.
-
 # Conclusion
-TBD
+This project examined the relationship between corporate ESG performance and financial market outcomes, focusing primarily on Swiss companies and comparing them to global peers. Using comprehensive ESG and financial data from the Swiss Performance Index and S&P 500, we analyzed correlations and regression models to explore how ESG, its subdimensions, and industry context affect financial performance.
+
+RQ1: Relationship between ESG and financial performance (Swiss companies)
+The analysis revealed no strong or consistent relationship between ESG scores and short-term financial returns. Regression results even showed a weak negative link between ESG risk and annual return, suggesting that higher ESG risk might correspond to marginally higher returns, although the effect is small and not economically meaningful. Thus, ESG performance does not appear to drive financial outperformance among Swiss firms in the short run.
+
+RQ2: Industry effects within Switzerland
+When controlling for company size and growth, no significant differences across industries were found. This implies that ESG-related financial effects are not industry-specific in the Swiss market — rather, the ESG-performance relationship is weak and homogeneous across sectors.
+
+RQ3: Individual ESG subdimensions (E, S, G)
+The Environmental, Social, and Governance components all showed weak correlations with financial indicators such as ROE and Annual Return. None of the dimensions significantly explained profitability in the regression models. However, Social factors displayed the most positive (though insignificant) coefficients, hinting that socially responsible practices might slightly support profitability, whereas Governance and Environmental factors tended to have small negative impacts.
+
+RQ4: Comparison between Swiss and global companies
+Swiss firms and global peers exhibited similar overall patterns: no statistically significant link between ESG and financial results. Yet, Swiss companies showed a somewhat stronger positive association between the Social dimension and financial performance, possibly reflecting the country’s cultural emphasis on stakeholder responsibility and social trust. Governance effects were more negative in Switzerland, suggesting that stricter governance standards might constrain short-term returns.
+
+Overall Conclusion
+Across all analyses, ESG performance does not emerge as a significant short-term driver of financial success. The relationship between ESG and profitability appears weak and context-dependent, with the social dimension showing the most promise as a positive contributor, particularly among Swiss firms. This supports the view that ESG benefits may materialize more in the long term, through reputational strength, risk mitigation, and stakeholder trust, rather than immediate financial gains.
 
 # References
+
