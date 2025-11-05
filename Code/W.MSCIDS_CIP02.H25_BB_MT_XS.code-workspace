@@ -1,0 +1,19 @@
+{
+    "folders": [
+        {
+            "path": "..",
+        },
+        {
+            "path": ".",
+            "name": "Code"
+        }
+    ],
+    "settings": {
+        "python.defaultInterpreterPath": "python",
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/.ipynb_checkpoints": true
+        },
+        "jupyter.notebookFileRoot": "${workspaceFolder}/.."
+    }
+}

@@ -16,6 +16,9 @@ format:
     number-sections: true
     toc: false
 
+engine: jupyter
+jupyter: "quarto-venv"
+
 execute:
   echo: false
   input: false
@@ -60,7 +63,7 @@ We collect data from two main company groups:
 - Swiss companies listed in the Swiss Performance Index (SPI), which includes 201 companies across various sectors. 
 - U.S. companies from the S&P 500 Index as a global benchmark, which includes 503 leading listed companies.
 
-For both datasets, financial and ESG data were retrieved via the Yahoo Finance API by company ticker. Since the API does not provide official documentation, we found two reliable public technical references ([Ranaroussi’s yfinance Documentation](https://ranaroussi.github.io/yfinance/reference/index.html) and the [AlgoTrading101 API Guide](https://algotrading101.com/learn/yahoo-finance-api-guide/) that we can consult to ensure data accuracy and consistency. We developed a Python script to extract data via the Yahoo Finance API. By modifying the input parameter (`swiss_companies.txt` and `S&P_companies.txt`), we generated separate datasets for Swiss and S&P companies. The complete implementation can be found in the Data folder as data_acquisition.py.
+For both datasets, financial and ESG data were retrieved via the Yahoo Finance API by company ticker. Since the API does not provide official documentation, we found two reliable public technical references ([Ranaroussi’s yfinance Documentation](https://ranaroussi.github.io/yfinance/reference/index.html) and the [AlgoTrading101 API Guide](https://algotrading101.com/learn/yahoo-finance-api-guide/) that we can consult to ensure data accuracy and consistency. We developed a Python script to extract data via the Yahoo Finance API. By modifying the input parameter (`swiss_companies.txt` and `S&P_companies.txt`), we generated separate datasets for Swiss and S&P companies. The complete implementation can be found in the Code folder as data_acquisition.py.
 
 Company tickers were first collected from Wikipedia ([SPI](https://en.wikipedia.org/wiki/Swiss_Performance_Index), [S&P 500](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies)), and for the SPI we validated the list against a real-time source from [Investing.com](https://www.investing.com/indices/swiss-performance-components) (as of 2025-10-17). Mismatches were resolved via Excel’s VLOOKUP and manual checks. Finalized tickers were stored in company_list.xlsx.
 
@@ -75,8 +78,8 @@ All financial data correspond to a **2024-12-31** snapshot, ensuring alignment w
 ## Data Cleansing
 ```{python}
 #| label: load-data
-spi = pd.read_csv(Path("Data/esg_financial_analysis_spi.csv"))
-sp500 = pd.read_csv(Path("Data/esg_financial_analysis_sp500.csv"))
+spi = pd.read_csv(Path("../Data/esg_financial_analysis_spi.csv"))
+sp500 = pd.read_csv(Path("../Data/esg_financial_analysis_sp500.csv"))
 ```
 
 ```{python}
@@ -619,10 +622,10 @@ print("Dropped columns:", cols_to_drop)
 
 ```{python}
 #| label: to_csv
-esg_clean.to_csv("Data/cleaned_combined_data.csv", index=False)
+esg_clean.to_csv("../Data/cleaned_combined_data.csv", index=False)
 ```
 
-# Analysis & discussion of results
+# Results
 
 ## RQ1: Relationship between financial performance and ESG
 
@@ -811,42 +814,16 @@ Based on the regression results from RQ1, none of the industry coefficients are 
 
 ## RQ3: ESG Subdimensions and Financial Performance
 
-In this section, we explore whether the Environmental (E), Social (S), and Governance (G) components of ESG scores show a clear dependency on companies’ financial performance.  
-The goal is to determine **which ESG dimension contributes most strongly** to explaining financial outcomes.
+This section examines whether the Environmental (E), Social (S), and Governance (G) 
+pillars are linked to companies’ financial outcomes — measured by Return on Equity (ROE), P/E ratio, and Annual Return.
 
-We focus on the following financial performance indicators:
-- Return on Equity (ROE)
-- Price-to-Earnings Ratio (P/E)
-- Annual Return (calculated from stock price changes)
+A correlation analysis shows that while E, S, and G scores are moderately correlated with each other (E–S = 0.76, S–G = 0.62), 
+their relationships with financial indicators are weak or near zero. This suggests that ESG performance does not directly translate into stronger short-term financial results.
 
-For each metric, we first inspect pairwise correlations and then run a multiple regression model:
-\[
-\text{Financial Performance} = \beta_0 + \beta_1 E + \beta_2 S + \beta_3 G + \epsilon
-\]
+A multiple regression using ROE as the dependent variable confirms this pattern (R² = 0.005). None of the ESG components show statistically significant effects:
 
-```{python}
-#| label: correlations
-#| output: true
-## Compute correlations
-
-# Select only numeric variables needed for correlation
-corr_vars = ['Environmental_Score', 'Social_Score', 'Governance_Score', 'Total_ESG_Score', 'ROE_Pct', 'Annual_Return_Pct']
-corr_matrix = esg_clean[corr_vars].corr()
-
-plt.figure(figsize=(8,6))
-sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", center=0)
-plt.title("Correlation between ESG dimensions and financial performance")
-plt.show()
-```
-
-The heatmap above shows how the three ESG dimensions (Environmental, Social, and Governance) relate to financial performance indicators such as Return on Equity (ROE) and Annual Return.
-
-The results indicate no strong correlation between ESG factors and financial performance.
-While Environmental and Social scores are moderately correlated with the overall ESG score (E=0.76, S=0.62), their correlations with ROE and Annual Return are close to zero or slightly negative.
-
-This suggests that, within the global dataset, higher ESG scores do not systematically translate into better short-term financial results. The weak correlations may indicate that ESG effects on financial performance are indirect, long-term, or vary strongly across industries.
-
-Next, we quantify the relative contribution of E, S, and G factors using a multiple regression model.
+- Social: small positive coefficient (suggesting slightly higher profitability for socially engaged firms),
+- Environmental and Governance: small negative effects.
 
 ```{python}
 #| label: multiple-regression-for-roe
@@ -875,21 +852,7 @@ X_scaled = sm.add_constant(X_scaled)
 
 # Fit regression
 model = sm.OLS(y.loc[X_scaled.index], X_scaled).fit()
-print(model.summary())
 ```
-
-The regression model quantifies the individual contributions of E, S, and G to explaining financial performance (ROE).
-
-The coefficients show that:
-
-- Social factors have a small positive effect on ROE,
-- Environmental and Governance factors are slightly negative,
-- However, none of these effects are statistically significant (all p-values > 0.05).
-
-The model’s R² value of 0.005 means that ESG variables explain less than 1% of the variation in ROE.
---> Overall, this indicates no clear or significant relationship between ESG subdimensions and profitability at the global level.
-
-We can visualize the relative effect sizes to highlight which ESG pillar matters most.
 
 ```{python}
 #| label: build-dataframe-of-coefficients
@@ -915,56 +878,22 @@ plt.tight_layout()
 plt.show()
 ```
 
-The visualization illustrates the relative strength and direction of each ESG dimension’s effect on ROE.
+Although insignificant, the Social pillar consistently displays the most positive association, 
+hinting that companies emphasizing social responsibility might experience marginal benefits. 
+In contrast, stricter governance practices may correspond to slightly lower short-term returns.
 
-- Social_Score shows the largest positive coefficient, suggesting that firms with stronger social practices may experience slightly higher profitability.
-- Governance_Score shows the largest negative effect, indicating that stricter governance practices might correspond to lower short-term returns.
-- Environmental_Score has only a minor negative influence.
+Overall, ESG subdimensions explain less than 1% of ROE variation — indicating that ESG effects on profitability are weak or long-term rather than immediate.
 
-These differences are not statistically significant, but they highlight potential patterns worth further investigation — particularly the consistently positive role of social engagement.
+## RQ4: Swiss vs. Global Companies Comparison
 
-# RQ4: Comparison: Swiss vs. Global Companies
-
-To assess whether the ESG–financial performance relationship differs between **Swiss firms** and **global peers**,  
-we divide the dataset into two groups and compare their correlation and regression results.
-
-This allows us to test whether ESG has a **stronger or weaker link** to financial performance within Switzerland.
+To assess country differences, we compare correlations and regression coefficients between Swiss SPI and global (S&P 500) firms.
 
 ```{python}
 #| label: split-datasets
 ## Split datasets
 df_swiss = esg_clean[esg_clean['Country'] == 'Switzerland']
 df_global = esg_clean[esg_clean['Country'] != 'Switzerland']
-
-print(f"Swiss companies: {len(df_swiss)}, Global companies: {len(df_global)}")
 ```
-
-```{python}
-#| label: compute-correlations-per-group
-#| output: true
-## Compute correlations per group
-def plot_corr_by_group(data, title):
-    corr = data[corr_vars].corr()
-    plt.figure(figsize=(8,6))
-    sns.heatmap(corr, annot=True, cmap="coolwarm", center=0)
-    plt.title(title)
-    plt.show()
-
-plot_corr_by_group(df_swiss, "Swiss Companies: ESG vs Financial Performance")
-plot_corr_by_group(df_global, "Global Companies: ESG vs Financial Performance")
-```
-
-By visually comparing the two correlation heatmaps, we can assess differences in the ESG–performance relationships.  
-The correlation matrix for Swiss companies shows similar patterns to the global sample.
-The Total ESG Score remains strongly correlated with its subdimensions (E=0.75, S=0.64, G=0.43), but correlations with financial indicators (ROE and Annual Return) remain very weak.
-
-Compared to global peers, Swiss firms exhibit a slightly stronger positive link between the Social dimension and financial returns (0.29), which may reflect the high relevance of social responsibility and stakeholder orientation in the Swiss market.
-
-The global results confirm the earlier finding: no meaningful correlation between ESG dimensions and financial performance.
-
-The strongest relationships occur between the ESG subdimensions themselves (e.g., Environmental and Total ESG = 0.77), while ROE and Annual Return correlations remain near zero.
-
-This suggests that for global firms, ESG scores are more internally consistent (E–S–G linked together) than predictive of financial outcomes.
 
 ```{python}
 #| label: compare-regression-coefficients
@@ -996,118 +925,35 @@ plt.axhline(0, color='gray', linestyle='--')
 plt.show()
 ```
 
-The comparison chart highlights how the relative effects of ESG dimensions differ between Swiss and global companies.
-
-- Swiss firms show a strong positive Social effect and a negative Governance effect,
-- Global firms display weaker coefficients overall, with the same general direction.
-
-This suggests that while ESG scores are not strong predictors of profitability, the social component seems more relevant for Swiss companies, possibly due to cultural or regulatory differences emphasizing corporate social responsibility and stakeholder relations.
+Both Swiss and global samples show strong correlations within ESG categories but weak connections to financial performance. Swiss companies exhibit a more pronounced positive Social effect and a stronger negative Governance effect, suggesting local institutional or cultural differences. However, none of these effects reach statistical significance.
 
 ## Interpretation and Discussion
 
-RQ1: “Is there a clear correlation between ESG and financial performance, and how do E, S, G factors compare in explaining it?”
-Correlation Heatmap (Global sample)
+Across all analyses, ESG scores show strong internal consistency—the Environmental, Social, and Governance pillars correlate strongly with each other. However, their relationship with financial performance is generally weak, regardless of whether firms are Swiss or part of the global benchmark.
 
-The Total ESG Score shows moderate positive correlations with its subdimensions (E=0.76, S=0.62, G=0.23).
+For both samples, correlations between ESG indicators and financial metrics (ROE, annual return) are close to zero. Regression models confirm this: none of the individual E, S, or G dimensions significantly explain profitability. The Social dimension tends to show the most positive associations, whereas Governance often displays small negative coefficients, but these effects remain statistically insignificant.
 
-The correlations with financial performance metrics (ROE_Pct, Annual_Return_Pct) are very weak and slightly negative:
+In comparing Swiss and global companies, the direction of relationships is broadly similar, though Swiss firms exhibit slightly stronger reactions—particularly a more positive association for Social scores and a more negative one for Governance. This suggests that local institutional and cultural factors may amplify how certain ESG dimensions relate to financial outcomes, even if the overall explanatory power remains limited.
 
-ROE vs. Total ESG: -0.065
+Overall, the empirical evidence indicates that ESG scores do not meaningfully predict short-term financial performance. Differences between countries or ESG subdimensions influence the magnitude but not the significance of these relationships.
 
-Annual Return vs. Total ESG: -0.034
-→ This means no strong linear relationship between ESG scores and profitability or returns globally.
-
-OLS Regression (Dependent: ROE_Pct)
-Variable	Coefficient	p-value	Interpretation
-Environmental_Score	-2.08	0.464	Negative but not significant
-Social_Score	+2.25	0.420	Positive but not significant
-Governance_Score	-3.06	0.288	Negative but not significant
-
-R² = 0.005, meaning ESG dimensions together explain less than 1% of ROE variance.
-
-None of the E, S, or G effects are statistically significant → financial performance cannot be predicted by ESG subdimensions in this dataset.
-
-Coefficient Visualization
-
-The bar plot confirms:
-
-Social factors have the most positive relative impact on ROE,
-
-Governance shows the most negative,
-
-Environmental has almost no effect.
-However, none are significant — so these are tendencies, not causal effects.
-
-🟩 Interpretation:
-While the overall ESG score correlates moderately with itself across subdimensions, no clear link exists between ESG and financial performance in the global sample.
-If any effect exists, social responsibility seems to have a more positive association with profitability than environmental or governance factors.
-
-RQ2: “How does the correlation between financial performance and ESG scores compare between Swiss companies and global competitors?”
-Swiss Companies Correlation
-
-Similar to the global sample, Total ESG is strongly correlated with its components (E=0.75, S=0.64, G=0.43).
-
-The relationship with financial metrics remains very weak:
-
-ROE vs. Total ESG: -0.097
-
-Annual Return vs. Total ESG: -0.009
-
-Slightly higher correlations between Social Score and returns (0.29) compared to global peers.
-
-Comparative Bar Chart (Swiss vs Global)
-
-Swiss firms: Strong positive Social impact (+7), strong negative Governance effect (-7).
-
-Global firms: Weaker overall effects — smaller Social impact (+1) and moderate negative Governance (-2).
-
-Environmental effects are minor in both cases.
-
-🟩 Interpretation:
-The direction of effects is consistent between Swiss and global firms, but the magnitude differs:
-
-Swiss companies exhibit stronger positive responsiveness to Social factors and stronger negative sensitivity to Governance ones.
-
-Global firms show weaker effects across all ESG dimensions.
-
-This may reflect differences in:
-
-Corporate governance structures and transparency expectations,
-
-Market maturity,
-
-Cultural emphasis on social responsibility in Switzerland.
-
-4. ESG Subdimensions and Financial Performance
-
-This section examines how environmental (E), social (S), and governance (G) dimensions relate to financial performance, measured through Return on Equity (ROE) and Annual Return.
-Both correlation and OLS regression analyses were conducted for global and Swiss company samples.
-
-Global Results
-
-The correlation matrix indicates only weak relationships between ESG scores and financial performance.
-While the Total ESG Score correlates strongly with its subcomponents (E=0.76, S=0.62, G=0.23), correlations with ROE and Annual Return are negligible.
-The regression analysis confirms that none of the ESG dimensions significantly explain ROE (R² = 0.005).
-Among the three, the Social dimension shows the most positive (though insignificant) effect, suggesting that socially responsible practices might slightly enhance profitability, whereas Governance and Environmental factors show small negative tendencies.
-
-Swiss vs. Global Comparison
-
-The correlation patterns for Swiss companies mirror the global results but with slightly stronger interactions.
-Social and Governance factors have more pronounced coefficients in the Swiss sample:
-
-Social factors appear more positively linked to ROE,
-
-Governance shows a stronger negative relationship,
-
-Environmental remains neutral.
-
-Overall, no significant correlation between ESG and financial performance is found, but the direction and magnitude of ESG subdimension effects differ between Swiss and global companies.
-
-🟢 Conclusion:
-ESG performance does not show a statistically significant effect on financial metrics in either dataset.
-However, social engagement seems to be the most positively associated factor, particularly in the Swiss context, while governance aspects may have a dampening effect on returns.
 
 # Conclusion
-TBD
+This project examined the relationship between corporate ESG performance and financial market outcomes, focusing primarily on Swiss companies and comparing them to global peers. Using comprehensive ESG and financial data from the Swiss Performance Index and S&P 500, we analyzed correlations and regression models to explore how ESG, its subdimensions, and industry context affect financial performance.
+
+RQ1: Relationship between ESG and financial performance (Swiss companies)
+The analysis revealed no strong or consistent relationship between ESG scores and short-term financial returns. Regression results even showed a weak negative link between ESG risk and annual return, suggesting that higher ESG risk might correspond to marginally higher returns, although the effect is small and not economically meaningful. Thus, ESG performance does not appear to drive financial outperformance among Swiss firms in the short run.
+
+RQ2: Industry effects within Switzerland
+When controlling for company size and growth, no significant differences across industries were found. This implies that ESG-related financial effects are not industry-specific in the Swiss market — rather, the ESG-performance relationship is weak and homogeneous across sectors.
+
+RQ3: Individual ESG subdimensions (E, S, G)
+The Environmental, Social, and Governance components all showed weak correlations with financial indicators such as ROE and Annual Return. None of the dimensions significantly explained profitability in the regression models. However, Social factors displayed the most positive (though insignificant) coefficients, hinting that socially responsible practices might slightly support profitability, whereas Governance and Environmental factors tended to have small negative impacts.
+
+RQ4: Comparison between Swiss and global companies
+Swiss firms and global peers exhibited similar overall patterns: no statistically significant link between ESG and financial results. Yet, Swiss companies showed a somewhat stronger positive association between the Social dimension and financial performance, possibly reflecting the country’s cultural emphasis on stakeholder responsibility and social trust. Governance effects were more negative in Switzerland, suggesting that stricter governance standards might constrain short-term returns.
+
+Overall Conclusion
+Across all analyses, ESG performance does not emerge as a significant short-term driver of financial success. The relationship between ESG and profitability appears weak and context-dependent, with the social dimension showing the most promise as a positive contributor, particularly among Swiss firms. This supports the view that ESG benefits may materialize more in the long term, through reputational strength, risk mitigation, and stakeholder trust, rather than immediate financial gains.
 
 # References
