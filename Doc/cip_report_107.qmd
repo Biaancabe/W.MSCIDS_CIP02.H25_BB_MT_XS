@@ -16,9 +16,6 @@ format:
     number-sections: true
     toc: false
 
-engine: jupyter
-jupyter: "quarto-venv"
-
 execute:
   echo: false
   input: false
@@ -63,9 +60,9 @@ We collect data from two main company groups:
 - Swiss companies listed in the Swiss Performance Index (SPI), which includes 201 companies across various sectors. 
 - U.S. companies from the S&P 500 Index as a global benchmark, which includes 503 leading listed companies.
 
-For both datasets, financial and ESG data were retrieved via the Yahoo Finance API by company ticker. Since the API does not provide official documentation, we found two reliable public technical references ([Ranaroussi’s yfinance Documentation](https://ranaroussi.github.io/yfinance/reference/index.html) and the [AlgoTrading101 API Guide](https://algotrading101.com/learn/yahoo-finance-api-guide/) that we can consult to ensure data accuracy and consistency. We developed a Python script to extract data via the Yahoo Finance API. By modifying the input parameter (`swiss_companies.txt` and `S&P_companies.txt`), we generated separate datasets for Swiss and S&P companies. The complete implementation can be found in the Code folder as data_acquisition.py.
+For both datasets, financial and ESG data were retrieved via the Yahoo Finance API by company ticker. Since the API does not provide official documentation, we found two reliable public technical references ([Ranaroussi’s yfinance Documentation](https://ranaroussi.github.io/yfinance/reference/index.html) and the [AlgoTrading101 API Guide](https://algotrading101.com/learn/yahoo-finance-api-guide/)) that we can consult to ensure data accuracy and consistency. We developed a Python script to extract data via the Yahoo Finance API. By modifying the input parameter (`swiss_companies.txt` and `S&P_companies.txt`), we generated separate datasets for Swiss and S&P companies. The complete implementation can be found in the Code folder as data_acquisition.py.
 
-Company tickers were first collected from Wikipedia ([SPI](https://en.wikipedia.org/wiki/Swiss_Performance_Index), [S&P 500](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies)), and for the SPI we validated the list against a real-time source from [Investing.com](https://www.investing.com/indices/swiss-performance-components) (as of 2025-10-17). Mismatches were resolved via Excel’s VLOOKUP and manual checks. Finalized tickers were stored in company_list.xlsx.
+Company tickers were ollected from Wikipedia ([SPI](https://en.wikipedia.org/wiki/Swiss_Performance_Index), [S&P 500](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies)), and for the SPI we validated the list against a real-time source from [Investing.com](https://www.investing.com/indices/swiss-performance-components) (as of 2025-10-17). Mismatches were resolved via Excel’s VLOOKUP and manual checks. Finalized tickers were stored in company_list.xlsx.
 
 Variables collected cover company information, financial indicators, and ESG scores:
 
@@ -164,7 +161,7 @@ print(sp500_esg['Total_ESG_Score'].isnull().sum())
 
 First, by checking the missing ESG data, we found that only 71/201 SPI companies had full ESG data and 142/201 had Total ESG Scores. To maintain sample size, we only removed firms without Total ESG Score. Then, we examined the country distribution to ensure dataset consistency. Since 5/201 SPI firms were non-Swiss, we removed them to maintain comparability. In the S&P 500 dataset, 96% were US-based, so non-US firms were also removed. We also checked and guaranteed that no overlap existed between SPI and S&P 500 companies. Besides, 1 duplicate (SCHN.SW vs. SCHP.SW) was resolved by keeping the registered share ticker, and a missing company name (Galderma) was manually filled in this part.
 
-A few financial variables (e.g., ROE%, Beta, Revenue) contained sporadic missing values. To ensure consistency, we dropped variables with extensive missing data or redundancy, please check the data prep code for more details.
+A few financial variables (e.g., ROE%, Beta, Revenue) contained sporadic missing values. To ensure consistency, we dropped variables with extensive missing data or redundancy.
 
 After cleaning, we retained 134 Swiss companies (SPI) and 280 U.S. companies (S&P 500) for subsequent analysis.
 
@@ -293,7 +290,7 @@ spi_esg = spi_esg.drop(columns=missing_large_columns)
 sp500_esg = sp500_esg.drop(columns=missing_large_columns)
 ```
 
-For data type and range checks, numeric, categorical, and date columns were standardized. Value ranges were validated (e.g., ESG scores 0–100, controversy level 0–5). Given some companies can have extreme margins and returns, out-of-range values were treated as warnings rather than removed.
+For data type and range checks, numeric, categorical, and date columns were standardized. Value ranges were validated (e.g., ESG scores 0–100, controversy level 0–5). Given some companies have extreme margins and returns, out-of-range values were treated as warnings rather than removed.
 
 ```{python}
 #| label: spi_esg-dtypes
@@ -538,7 +535,7 @@ def plot_outliers(df, name):
 plot_outliers(spi_esg, "SPI")
 ```
 
-Finally, we enriched the dataset with additional attributes and prepares it for analysis. A Company_Type column was added to distinguish between SPI and S&P 500 firms in the later merged dataset. Companies were classified into five ESG Risk Categories (Negligible, Low, Medium, High, Severe) based on [ESG Risk Ratings Methodology](https://www.sustainalytics.com/docs/knowledgehublibraries/default-document-library/sustainalytics_-esg-risk-ratings_-version-3-1_-methodology-abstract_-june-2024.pdf), where lower scores indicate lower risk.
+Finally, we enriched the dataset with additional attributes and prepared it for analysis. A Company_Type column was added to distinguish between SPI and S&P 500 firms in the merged dataset. Companies were classified into 5 ESG Risk Categories (Negligible, Low, Medium, High, Severe) based on [ESG Risk Ratings Methodology](https://www.sustainalytics.com/docs/knowledgehublibraries/default-document-library/sustainalytics_-esg-risk-ratings_-version-3-1_-methodology-abstract_-june-2024.pdf), where lower scores indicate lower risk.
 
 After the SPI and S&P 500 datasets were merged, redundant columns with identical values were removed, and the cleaned combined dataset was saved as “Data/cleaned_combined_data.csv.”
 
@@ -732,11 +729,11 @@ The linear fit is horizontal which means that there is no effect of ESG risk on 
 The broad confidence band further suggests that ESG factors alone have limited explanatory power for short-term returns.
 
 
-Now we run a regression analysis to statistically disentangle the effects and control for several influencing factors, such as:
+Now we run a regression analysis to statistically disentangle the effects and control for these influencing factors:
 
 - **Market capitalization** (log_mc): Larger firms are typically more diversified and stable, which can affect both their ESG performance and returns.
 - **Revenue growth** (Revenue_Growth_Pct): Fast-growing firms may achieve higher returns regardless of ESG, so including growth helps isolate the ESG effect.
-- **Industry**: ESG relevance differs by sector, so industry dummies control for these differences.
+- **Industry**: ESG relevance differs by sector, so dummies control for these differences.
 
 ```{python}
 #| label: how-many-obs-per-industry
@@ -756,7 +753,7 @@ m_ret_clean = smf.ols(
 print(m_ret_clean.summary())
 ```
 
-The adjusted R-squared shows that the model explains about 49% of the variance in annual returns.
+The adjusted R-squared shows that the model explains ~49% of the variance in annual returns.
 
 Contrary to expectations from the visual analysis, the Total ESG Score has a statistically significant effect (coef = 0.91, p = 0.047), but in the opposite direction: higher ESG risk is linked to higher annual returns. The effect is small, with about a 0.9 percentage point increase in return per ESG-risk point.
 
@@ -939,21 +936,27 @@ Overall, the empirical evidence indicates that ESG scores do not meaningfully pr
 
 
 # Conclusion
-This project examined the relationship between corporate ESG performance and financial market outcomes, focusing primarily on Swiss companies and comparing them to global peers. Using comprehensive ESG and financial data from the Swiss Performance Index and S&P 500, we analyzed correlations and regression models to explore how ESG, its subdimensions, and industry context affect financial performance.
+This project explored the relationship between corporate ESG performance and financial outcomes, focusing on Swiss companies and comparing them to global peers. Using ESG and financial data from the Swiss Performance Index and S&P 500, we analyzed correlations and regression models.
 
-RQ1: Relationship between ESG and financial performance (Swiss companies)
-The analysis revealed no strong or consistent relationship between ESG scores and short-term financial returns. Regression results even showed a weak negative link between ESG risk and annual return, suggesting that higher ESG risk might correspond to marginally higher returns, although the effect is small and not economically meaningful. Thus, ESG performance does not appear to drive financial outperformance among Swiss firms in the short run.
 
-RQ2: Industry effects within Switzerland
-When controlling for company size and growth, no significant differences across industries were found. This implies that ESG-related financial effects are not industry-specific in the Swiss market — rather, the ESG-performance relationship is weak and homogeneous across sectors.
+*RQ1 - ESG and financial performance (Swiss companies):*  
+No strong or consistent link between ESG scores and short-term financial returns was found. A weak negative correlation between ESG risk and annual return suggested that higher ESG risk might correspond to marginally higher returns, though the effect was minimal.
 
-RQ3: Individual ESG subdimensions (E, S, G)
-The Environmental, Social, and Governance components all showed weak correlations with financial indicators such as ROE and Annual Return. None of the dimensions significantly explained profitability in the regression models. However, Social factors displayed the most positive (though insignificant) coefficients, hinting that socially responsible practices might slightly support profitability, whereas Governance and Environmental factors tended to have small negative impacts.
 
-RQ4: Comparison between Swiss and global companies
-Swiss firms and global peers exhibited similar overall patterns: no statistically significant link between ESG and financial results. Yet, Swiss companies showed a somewhat stronger positive association between the Social dimension and financial performance, possibly reflecting the country’s cultural emphasis on stakeholder responsibility and social trust. Governance effects were more negative in Switzerland, suggesting that stricter governance standards might constrain short-term returns.
+*RQ2 - Industry effects within Switzerland:*  
+No significant industry differences were found when controlling for company size and growth. The ESG-performance relationship was weak and similar across sectors.
 
-Overall Conclusion
-Across all analyses, ESG performance does not emerge as a significant short-term driver of financial success. The relationship between ESG and profitability appears weak and context-dependent, with the social dimension showing the most promise as a positive contributor, particularly among Swiss firms. This supports the view that ESG benefits may materialize more in the long term, through reputational strength, risk mitigation, and stakeholder trust, rather than immediate financial gains.
+*RQ3 - ESG subdimensions (E, S, G):*  
+All components showed weak correlations with financial indicators. Social factors had the most positive but insignificant effect, while Governance and Environmental factors showed small negative impacts.
+
+*RQ4 - Swiss vs. global companies:*  
+Swiss firms showed a slightly stronger positive link between the Social dimension and financial performance. Governance effects were more negative in Switzerland, possibly due to stricter governance standards.
+
+*Overall Conclusion:*  
+ESG performance does not significantly drive short-term financial success. The relationship is weak, with the Social dimension showing the most promise for positive impact, especially in Switzerland. ESG benefits may be more visible in the long term, through reputation and stakeholder trust.
 
 # References
+::: {#refs}
+:::
+
+*AI Usage disclosure: This document was created with assistance from AI tools. The content has been reviewed and edited by a human. For more information on the extent and nature of AI usage, please contact the author.*
